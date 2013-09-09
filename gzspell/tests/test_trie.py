@@ -8,12 +8,6 @@ logger = logging.getLogger(__name__)
 
 class TestTrie(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_one(self):
 
         x = trie.Trie()
