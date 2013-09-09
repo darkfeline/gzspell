@@ -8,6 +8,20 @@ Relation = namedtuple('Relation', ['node', 'chars'])
 
 class Traverser:
 
+    """
+    Traverser is used to traverse a Trie.  Instantiate a Traverser with
+    the target trie and feed it characters with traverse().
+
+    Attributes
+    ----------
+    complete : bool
+        Whether or not the traversal currently lies on a complete word.
+    error : bool
+        Whether or not the traversal has failed.  If this is True,
+        complete is False.
+
+    """
+
     def __init__(self, trie):
         self.node = trie.root
         self.partial = ''
@@ -52,6 +66,8 @@ class Traverser:
 
 class Trie:
 
+    """Compressed char trie implementation"""
+
     def __init__(self):
         self.root = Node()
 
@@ -71,7 +87,7 @@ class Trie:
                     word = word[len(rel.chars):]
                 else:
                     logger.debug('splitting relation %r', rel.chars)
-                    match = gcs(word, rel.chars)
+                    match = _gcp(word, rel.chars)
                     logger.debug('first half %r', match)
                     new_node = Node()
                     node[char] = Relation(new_node, word[:match])
@@ -106,7 +122,8 @@ class Node:
         return key in self.map
 
 
-def gcs(a, b):
+def _gcp(a, b):
+    """Greatest common prefix"""
     i = 0
     count = 0
     while True:
