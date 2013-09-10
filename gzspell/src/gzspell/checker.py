@@ -80,7 +80,9 @@ def main(*args):
 
 
 def wrap(chars):
-    return bytes([len(chars)]) + chars.encode('utf8')
+    x = chars.encode('utf8')
+    assert len(x) < 256
+    return bytes([len(x)]) + chars.encode('utf8')
 
 
 def _close(sock):
