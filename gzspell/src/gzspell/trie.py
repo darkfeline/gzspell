@@ -79,13 +79,16 @@ class Trie:
             char, word = word[0], word[1:]
             logger.debug('checking %r', char)
             if node.haskey(char):
+                # if key exists
                 logger.debug('getting %r', char)
                 rel = node[char]
                 if word.startswith(rel.chars):
+                    # if relation chars match
                     logger.debug('relation chars okay')
                     node = rel.node
                     word = word[len(rel.chars):]
                 else:
+                    # if relation chars don't match
                     logger.debug('splitting relation %r', rel.chars)
                     match = _gcp(word, rel.chars)
                     logger.debug('first half %r', match)
@@ -96,6 +99,7 @@ class Trie:
                     node = new_node
                     word = word[match+1:]
             else:
+                # if key doesn't exist
                 logger.debug('mapping %r with rel chars %r', char, word)
                 new_node = Node()
                 node[char] = Relation(new_node, word)
