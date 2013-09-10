@@ -134,4 +134,5 @@ def _gcp(a, b):
                 return count
         except IndexError:
             return count
+        i += 1
     return count
