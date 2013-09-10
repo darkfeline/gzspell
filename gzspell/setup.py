@@ -10,5 +10,5 @@ setup(
     url='',
     package_dir={'': 'src'},
     packages=['gzspell'],
-    #scripts=['src/bin/checker'],
+    scripts=['src/bin/checker'],
 )
