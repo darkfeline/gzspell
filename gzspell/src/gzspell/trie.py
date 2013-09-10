@@ -62,6 +62,7 @@ class Traverser:
                     return
             chars = chars[len(rel.chars):]
             self.node = rel.node
+            logger.debug('resting node is %r', self.node)
 
 
 class Trie:
@@ -70,6 +71,7 @@ class Trie:
 
     def __init__(self):
         self.root = Node()
+        logger.debug('initial node %r', self.root)
 
     def add(self, word):
         logger.debug('add(%r)', word)
@@ -93,18 +95,21 @@ class Trie:
                     match = _gcp(word, rel.chars)
                     logger.debug('first half %r', match)
                     new_node = Node()
+                    logger.debug('new node %r', new_node)
                     node[char] = Relation(new_node, word[:match])
-                    new_node[word[match]] = Relation(
-                        node, word[match+1:])
+                    new_node[rel.chars[match]] = Relation(
+                        rel.node, rel.chars[match+1:])
                     node = new_node
                     word = word[match+1:]
             else:
                 # if key doesn't exist
                 logger.debug('mapping %r with rel chars %r', char, word)
                 new_node = Node()
+                logger.debug('new node %r', new_node)
                 node[char] = Relation(new_node, word)
                 node = new_node
                 break
+        logger.debug('marking %r as end', node)
         node.end = True
 
 
