@@ -33,7 +33,9 @@ previous word.
 .. note::
 
    Valid word characters are all letters and '-'.  Everything else is
-   not a word character.  (What about numbers?)
+   not a word character.  Letters are forced to lowercase, since
+   capitalization is often abandoned in chat/twitter.  (What about
+   numbers?)
 
 Backend
 -------
