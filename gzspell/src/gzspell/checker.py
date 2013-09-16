@@ -9,8 +9,8 @@ Communication with the server follows the given protocol per connection:
 Client
 ------
 First byte indicates number of following bytes.  Following bytes are
-the characters to check, encoded in UTF-8.  Use the wrap() function to
-do this.
+the word to check, encoded in UTF-8.  Use the wrap() function to do
+this.
 
 Server
 ------
