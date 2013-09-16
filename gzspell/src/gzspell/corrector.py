@@ -24,6 +24,11 @@ import logging
 import argparse
 import socket
 import atexit
+from functools import partial
+
+import pymysql
+
+from gzspell import analysis
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +36,12 @@ logger = logging.getLogger(__name__)
 def main(*args):
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('data_dir')
     parser.add_argument('--port', type=int, default=9001)
+    parser.add_argument('--db-server', default='localhost')
+    parser.add_argument('--db-name', default='lexicon')
+    parser.add_argument('--db-user', default='lexicon')
+    parser.add_argument('--db-pw', default='')
     args = parser.parse_args(args)
-
-    # build data
 
     # open socket
     sock = socket.socket(socket.AF_INET)
@@ -58,15 +64,52 @@ def main(*args):
             continue
         # recv data
         chars = remote_sock.recv(size).decode('utf8')
-        result = process(chars)
+        # calculate
+        # TODO
+        result = process(
+            chars, host=args.db_server, user=args.db_user, db=args.db_name)
         # send data
         remote_sock.send(wrap(result))
         remote_sock.shutdown(socket.SHUT_RDWR)
         remote_sock.close()
 
 
-def process(word):
-    return 'apple'
+def process(word, *, host, user, db, length_err=2, num_cand=5):
+    with pymysql.connect(host=host, user=user, db=db) as cur:
+        length = len(word)
+        id_cand = []  # candidate IDs
+        # filter by length
+        # TODO the filtering can be put into new functions...
+        results = cur.execute(
+            ' '.join(
+                'SELECT id FROM words WHERE length BETWEEN %d AND %d',
+                'ORDER BY frequency DESC',
+            ),
+            (length - length_err, length + length_err))
+        id_cand.extend(results)
+        # filter by first letter
+        results = cur.execute(
+            'SELECT id FROM words WHERE word LIKE %s',
+            word[0] + '%')
+        new = []
+        results = set(results)
+        for x in id_cand:
+            if x in results:
+                new.append(x)
+        id_cand = new
+        # get from graph
+        id_cand = id_cand[:num_cand]
+        results = cur.executemany(' '.join(
+            'SELECT word FROM graph WHERE word1=%s',
+            'LEFT JOIN word ON graph.word2=word.id',
+        ), id_cand)
+        id_cand = set()
+        for x in results:
+            id_cand.update(x)
+        # calculate edit distance
+        id_cand = list(id_cand)
+        id_cand.sort(key=partial(analysis.editdist, word))
+        return id_cand[0]
 
 
 def wrap(chars):
