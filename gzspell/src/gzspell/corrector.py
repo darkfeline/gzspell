@@ -18,6 +18,8 @@ Responds with the correct word.  Same as client, first byte indicates
 number of following bytes.  Following bytes are the correct word,
 encoded in UTF-8.
 
+Sends a single byte, 0x00, if some error occurred (no suggestions).
+
 """
 
 import logging
@@ -65,11 +67,13 @@ def main(*args):
         # recv data
         chars = remote_sock.recv(size).decode('utf8')
         # calculate
-        # TODO
         result = process(
             chars, host=args.db_server, user=args.db_user, db=args.db_name)
         # send data
-        remote_sock.send(wrap(result))
+        if result is not None:
+            remote_sock.send(wrap(result))
+        else:
+            remote_sock.send(bytes([0]))
         remote_sock.shutdown(socket.SHUT_RDWR)
         remote_sock.close()
 
@@ -86,11 +90,15 @@ def process(word, *, host, user, db, length_err=2, num_cand=5):
                 'ORDER BY frequency DESC',
             ),
             (length - length_err, length + length_err))
+        if not results:
+            return None
         id_cand.extend(results)
         # filter by first letter
         results = cur.execute(
             'SELECT id FROM words WHERE word LIKE %s',
             word[0] + '%')
+        if not results:
+            return None
         new = []
         results = set(results)
         for x in id_cand:
@@ -98,11 +106,14 @@ def process(word, *, host, user, db, length_err=2, num_cand=5):
                 new.append(x)
         id_cand = new
         # get from graph
+        # TODO type, return value checks
         id_cand = id_cand[:num_cand]
         results = cur.executemany(' '.join(
             'SELECT word FROM graph WHERE word1=%s',
             'LEFT JOIN word ON graph.word2=word.id',
         ), id_cand)
+        if not results:
+            return None
         id_cand = set()
         for x in results:
             id_cand.update(x)
