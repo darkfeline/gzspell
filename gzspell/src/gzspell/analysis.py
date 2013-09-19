@@ -51,28 +51,41 @@ class Costs:
 
     def compute(self):
         for a in self._neighbors:
-            self._calc(a)
+            self._calc(a, a)
 
-    def _calc(self, a, val=0.5, delta=0.5):
-        try:
-            neighbors = self._neighbors[a]
-        except KeyError:
-            return
-        self.set(a, a, 0)
-        for k in neighbors:
-            old = self.get(a, k)
-            if old is None:
-                self.set(a, k, val)
+    def _calc(self, a, k, val=0, delta=0.5, seen=None):
+        if seen is None:
+            seen = set()
+        else:
+            assert isinstance(seen, set)
+            if k in seen:
+                return
             else:
-                self.set(a, k, (val+old) / 2)
-            self._calc(k, val+delta, delta)
+                seen.add(k)
+        try:
+            neighbors = self._neighbors[k]
+        except KeyError:
+            logger.warn('Something went wrong; unknown key')
+            return
+        old = self.get(a, k)
+        if old is None:
+            self.set(a, k, val)
+        else:
+            self.set(a, k, (val+old) / 2)
+        for k in neighbors:
+            self._calc(a, k, val+delta, delta, seen)
 
 costs = Costs()
 costs.compute()
 
 
 def repl_cost(a, b):
-    return costs.get(a, b)
+    logger.debug('repl_cost(%r, %r)', a, b)
+    assert isinstance(a, str) and len(a) == 1
+    assert isinstance(b, str) and len(b) == 1
+    cost = costs.get(a, b)
+    assert cost is not None
+    return cost
 
 
 @lru_cache(1024)
