@@ -1,24 +1,34 @@
 """
-Start a corrector server using the given word list file.
+Start a backend server.
 
 The server opens an INET socket locally at a given port (defaults to
-9001).
+9000).
 
-Communication with the server follows the given protocol per connection:
+Messages sent to and from the server are wrapped as follows:  First byte
+indicates the number of following bytes (NOT characters), up to 255.
+Messages are encoded in UTF-8.  See wrap().
 
-Client
-------
-First byte indicates number of following bytes.  Following bytes are
-the characters to check, encoded in UTF-8.  Use the wrap() function to
-do this.
+Commands sent to the server have the format: "COMMAND arguments"
 
-Server
-------
-Responds with the correct word.  Same as client, first byte indicates
-number of following bytes.  Following bytes are the correct word,
-encoded in UTF-8.
+The server recognizes the following commands:
 
-Sends a single byte, 0x00, if some error occurred (no suggestions).
+CHECK word
+    Checks the given word and returns:
+
+    - OK
+    - ERROR
+    - INCOMPLETE
+
+CORRECT word
+    Calculates the best correction for the given word and returns it.
+
+PROCESS word
+    Checks and corrects if not correct:
+
+    - OK
+    - WRONG suggestion
+
+Socket is closed after each transaction.
 
 """
 
@@ -26,11 +36,13 @@ import logging
 import argparse
 import socket
 import atexit
+import shlex
 from functools import partial
 
 import pymysql
 
 from gzspell import analysis
+from gzspell import trie
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +50,27 @@ logger = logging.getLogger(__name__)
 def main(*args):
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=9001)
-    parser.add_argument('--db-server', default='localhost')
-    parser.add_argument('--db-name', default='lexicon')
-    parser.add_argument('--db-user', default='lexicon')
-    parser.add_argument('--db-pw', default='')
+    parser.add_argument('--port', type=int, default=9000)
+    parser.add_argument('--host', default='localhost')
+    parser.add_argument('--db', default='lexicon')
+    parser.add_argument('--user', default='lexicon')
+    parser.add_argument('--pw', default='')
     args = parser.parse_args(args)
+
+    # build trie
+    t_words = _build_trie(args.host, args.db, args.user, "")
+    t_words = trie.Trie()
+    with open(args.wordlist) as f:
+        for line in f:
+            t_words.add(line.rstrip())
+
+    # commands
+    cmd_dict = {
+        "CHECK": partial(check, t_words),
+        "CORRECT": partial(
+            correct, host=args.host, db=args.db, user=args.user),
+        "PROCESS": process,
+    }
 
     # open socket
     sock = socket.socket(socket.AF_INET)
@@ -53,7 +80,6 @@ def main(*args):
     sock.listen(5)
     logger.debug("Socket bound and listening to %r", addr)
 
-    # listen and check
     while True:
         try:
             remote_sock, addr = sock.accept()
@@ -61,24 +87,29 @@ def main(*args):
             logger.debug(
                 'Got exception listening for socket connection %r', e)
             continue
-        size = remote_sock.recv(1)
-        if not size:
-            continue
-        # recv data
-        chars = remote_sock.recv(size).decode('utf8')
+        msg = _get(remote_sock)
+        cmd, *args = shlex.split(msg)
         # calculate
-        result = process(
-            chars, host=args.db_server, user=args.db_user, db=args.db_name)
+        result = cmd_dict[cmd](*args)
         # send data
         if result is not None:
             remote_sock.send(wrap(result))
         else:
             remote_sock.send(bytes([0]))
+
         remote_sock.shutdown(socket.SHUT_RDWR)
         remote_sock.close()
 
 
-def process(word, *, host, user, db, length_err=2, num_cand=5):
+def process(word, *, host, user, db, trie, length_err=2, num_cand=5):
+    if check(trie, word) == 'OK':
+        return 'OK'
+    else:
+        return ' '.join('WRONG', correct(
+            word, host=host, db=db, length_err=length_err, num_cand=num_cand))
+
+
+def correct(word, *, host, user, db, length_err=2, num_cand=5):
     with pymysql.connect(host=host, user=user, db=db) as cur:
         length = len(word)
         id_cand = []  # candidate IDs
@@ -123,10 +154,39 @@ def process(word, *, host, user, db, length_err=2, num_cand=5):
         return id_cand[0]
 
 
+def check(trie_, word):
+    trav = trie.Traverser(trie_)
+    # TODO do this incrementally?
+    trav.traverse(word)
+    if trav.error:
+        assert not trav.complete
+        return "ERROR"
+    elif not trav.complete:
+        return "INCOMPLETE"
+    else:
+        return "OK"
+
+
 def wrap(chars):
     x = chars.encode('utf8')
     assert len(x) < 256
     return bytes([len(x)]) + chars.encode('utf8')
+
+
+def _build_trie(host, db, user, passwd):
+    t_words = trie.Trie()
+    with pymysql.connect(host=host, user=user, db=db) as cur:
+        words = cur.execute('SELECT word FROM words ORDER BY word')
+        for word in words:
+            t_words.add(word)
+    return t_words
+
+
+def _get(sock):
+    size = sock.recv(1)
+    if not size:
+        return None
+    return sock.recv(size).decode('utf8')
 
 
 def _close(sock):
