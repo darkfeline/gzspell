@@ -39,7 +39,9 @@ class Costs:
     }
 
     def __init__(self):
-        self.costs = [[None for i in len(self.keys)] for j in len(self.keys)]
+        self.costs = [
+            [None for i in range(len(self.keys))]
+            for j in range(len(self.keys))]
 
     def get(self, a, b):
         return self.costs[self.keys.index(a)][self.keys.index(b)]
