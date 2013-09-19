@@ -10,5 +10,5 @@ setup(
     url='',
     package_dir={'': 'src'},
     packages=['gzspell'],
-    scripts=['src/bin/gzserver'],
+    scripts=['src/bin/' + x for x in ['gzserver', 'make_graph']],
 )
