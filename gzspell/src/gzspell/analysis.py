@@ -1,5 +1,6 @@
 from functools import lru_cache
 import logging
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -51,29 +52,27 @@ class Costs:
 
     def compute(self):
         for a in self._neighbors:
-            self._calc(a, a)
+            logger.debug('Computing for a=%r', a)
+            unvisited = set(self.keys)
+            self.set(a, a, 0)
+            while unvisited:
+                current = min(unvisited, key=partial(self.get, a))
+                logger.debug('Computing for current=%r', current)
+                for k in self._neighbors[current]:
+                    if k not in unvisited:
+                        continue
+                    else:
+                        self.set(a, k, min(
+                            self.get(a, k), self.get(a, current) + 0.5))
+                unvisited.remove(current)
+            self.set(a, a, float('+inf'))
 
-    def _calc(self, a, k, val=0, delta=0.5, seen=None):
-        if seen is None:
-            seen = set()
-        else:
-            assert isinstance(seen, set)
-            if k in seen:
-                return
-            else:
-                seen.add(k)
-        try:
-            neighbors = self._neighbors[k]
-        except KeyError:
-            logger.warn('Something went wrong; unknown key')
-            return
-        old = self.get(a, k)
-        if old is None:
-            self.set(a, k, val)
-        else:
-            self.set(a, k, (val+old) / 2)
-        for k in neighbors:
-            self._calc(a, k, val+delta, delta, seen)
+    def print(self):
+        for i, x in enumerate(self.keys):
+            print(x)
+            print(', '.join(
+                ': '.join((y, str(self.costs[i][j])))
+                for j, y in enumerate(self.keys)))
 
 costs = Costs()
 costs.compute()
