@@ -28,11 +28,26 @@ class Database:
                 t_words.add(word)
         return t_words
 
+    def wordfromid(self, id):
+        with self._connect() as cur:
+            return cur.execute('SELECT word FROM words WHERE id=%d', id)
+
+    def freq(self, id):
+        with self._connect() as cur:
+            return cur.execute(
+                'SELECT frequency FROM words WHERE id=%d', id)
+
     def length_between(self, a, b):
         with self._connect() as cur:
             return cur.execute(
                 'SELECT id FROM words WHERE length BETWEEN %d AND %d',
                 (a, b))
+
+    def len_startswith(self, a, b, prefix):
+        with self._connect() as cur:
+            return cur.execute(' '.join(
+                'SELECT id FROM words WHERE length BETWEEN %d AND %d',
+                'AND word LIKE %s'), a, b, prefix + '%')
 
     def startswith(self, a):
         with self._connect() as cur:
@@ -67,24 +82,24 @@ class Spell:
 
     def correct(self, word):
         length = len(word)
-        id_cand = []  # candidate IDs
-        # filter by length
-        results = self.db.length_between(
-            (length - self._length_err, length + self._length_err))
-        if not results:
+        # get candidates
+        id_candidates = self.db.len_startswith(
+            length - self._length_err, length + self._length_err, word[0])
+        if not id_candidates:
             return None
         # get from graph
-        id_cand = random.choice(results)
-        results = self.db.neighbors(id_cand)
-        if not results:
-            return None
-        id_cand = set()
-        for x in results:
-            id_cand.update(x)
-        # calculate edit distance
-        id_cand = list(id_cand)
-        id_cand.sort(key=partial(editdist, word))
-        return id_cand[0]
+        id_cand = random.choice(id_candidates)
+        while True:
+            neighbors = self.db.neighbors(id_cand)
+            if not neighbors:
+                return None
+            id_cand = set()
+            for x in neighbors:
+                id_cand.update(x)
+            # calculate edit distance
+            id_cand = list(id_cand)
+            #id_cand.sort(key=partial(dist, word))
+        return self.db.wordfromid(id_cand)
 
     def process(self, word):
         if self.check(word) == 'OK':
@@ -95,10 +110,22 @@ class Spell:
     def add(self, word):
         raise NotImplementedError
 
+    def dist(self, word, target):
+        """
+        Parameters
+        ----------
+        word : str
+            Correct word.
+        target : str
+            Wrong word.
 
-# TODO
-def dist(word, target):
-    ed = editdist(word, target)
+        """
+        cost = editdist(word, target)
+        cost += abs(len(target) - len(word))
+        if target[0] != word[0]:
+            cost += 1
+        cost *= self.db.freq(word)
+        return cost
 
 
 class Costs:
@@ -170,17 +197,16 @@ class Costs:
                 ': '.join((y, str(self.costs[i][j])))
                 for j, y in enumerate(self.keys)))
 
+    def repl_cost(self, a, b):
+        logger.debug('repl_cost(%r, %r)', a, b)
+        assert isinstance(a, str) and len(a) == 1
+        assert isinstance(b, str) and len(b) == 1
+        cost = self.get(a, b)
+        assert cost is not None
+        return cost
+
 costs = Costs()
 costs.compute()
-
-
-def repl_cost(a, b):
-    logger.debug('repl_cost(%r, %r)', a, b)
-    assert isinstance(a, str) and len(a) == 1
-    assert isinstance(b, str) and len(b) == 1
-    cost = costs.get(a, b)
-    assert cost is not None
-    return cost
 
 
 @lru_cache(2048)
@@ -228,7 +254,7 @@ def _editdist(word, target, i_word, limit, i_target, table):
             _editdist(word, target, i_word - 1, i_target, table) + 1,
             # replace, same
             _editdist(word, target, i_word - 1, i_target - 1, table) +
-            repl_cost(word[i_word - 1], target[i_target - 1])
+            costs.repl_cost(word[i_word - 1], target[i_target - 1])
         )
         if limit is not None and cost >= limit:
             raise LimitException
@@ -237,4 +263,5 @@ def _editdist(word, target, i_word, limit, i_target, table):
     return table[i_target][i_word]
 
 
-class LimitException(Exception): pass
+class LimitException(Exception):
+    pass
