@@ -3,9 +3,9 @@
 import sys
 import logging
 
-from gzspell import checker
+from gzspell import server
 
 logging.basicConfig(level=logging.DEBUG)
-checker.main(*sys.argv[1:])
+server.main(*sys.argv[1:])
 
 # vim: set ft=python:
