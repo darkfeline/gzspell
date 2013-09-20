@@ -188,7 +188,6 @@ class Costs:
                         self.set(a, k, min(
                             self.get(a, k), self.get(a, current) + 0.5))
                 unvisited.remove(current)
-            self.set(a, a, float('+inf'))
 
     def print(self):
         for i, x in enumerate(self.keys):
