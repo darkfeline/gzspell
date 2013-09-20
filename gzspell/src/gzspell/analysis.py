@@ -221,7 +221,7 @@ def editdist(word, target, limit=None):
         return float('+inf')
 
 
-def _editdist(word, target, i_word, limit, i_target, table):
+def _editdist(word, target, limit, i_word, i_target, table):
     """
     Parameters
     ----------
@@ -242,17 +242,19 @@ def _editdist(word, target, i_word, limit, i_target, table):
     """
     logger.debug(
         '_editdist(%r, %r, %r, %r, table)', word, target, i_word, i_target)
+    assert isinstance(i_word, int)
+    assert isinstance(i_target, int)
     if i_word < 0 or i_target < 0:
         logger.debug('Got inf')
         return float('+inf')
     if table[i_target][i_word] is None:
         cost = min(
             # insert in word
-            _editdist(word, target, i_word, i_target - 1, table) + 1,
+            _editdist(word, target, limit, i_word, i_target - 1, table) + 1,
             # delete in word
-            _editdist(word, target, i_word - 1, i_target, table) + 1,
+            _editdist(word, target, limit, i_word - 1, i_target, table) + 1,
             # replace, same
-            _editdist(word, target, i_word - 1, i_target - 1, table) +
+            _editdist(word, target, limit, i_word - 1, i_target - 1, table) +
             costs.repl_cost(word[i_word - 1], target[i_target - 1])
         )
         if limit is not None and cost >= limit:
