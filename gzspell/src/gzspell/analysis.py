@@ -87,7 +87,7 @@ def repl_cost(a, b):
     return cost
 
 
-@lru_cache(1024)
+@lru_cache(2048)
 def editdist(word, target):
     # table[target][word]
     table = [
