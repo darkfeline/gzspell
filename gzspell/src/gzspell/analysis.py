@@ -1,8 +1,104 @@
 from functools import lru_cache
 import logging
 from functools import partial
+import random
+
+import pymysql
+
+from gzspell import trie
 
 logger = logging.getLogger(__name__)
+
+
+class Database:
+
+    def __init__(self, *args, **kwargs):
+        self._args = args
+        self._kwargs = kwargs
+        self.trie = self._build_trie()
+
+    def _connect(self):
+        return pymysql.connect(*self._args, **self._kwargs)
+
+    def _build_trie(self):
+        t_words = trie.Trie()
+        with self._connect() as cur:
+            words = cur.execute('SELECT word FROM words ORDER BY word')
+            for word in words:
+                t_words.add(word)
+        return t_words
+
+    def length_between(self, a, b):
+        with self._connect() as cur:
+            return cur.execute(
+                'SELECT id FROM words WHERE length BETWEEN %d AND %d',
+                (a, b))
+
+    def startswith(self, a):
+        with self._connect() as cur:
+            return cur.execute(
+                'SELECT id FROM words WHERE word LIKE %s', a + '%')
+
+    def neighbors(self, word_id):
+        with self._connect() as cur:
+            return cur.executemany(' '.join(
+                'SELECT word FROM graph WHERE word1=%s',
+                'LEFT JOIN word ON graph.word2=word.id',
+            ), word_id)
+
+
+class Spell:
+
+    def __init__(self, db):
+        self.db = db
+        self._length_err = 2
+        self._threshold = 10
+
+    def check(self, word):
+        trav = trie.Traverser(self.db.trie)
+        trav.traverse(word)
+        if trav.error:
+            assert not trav.complete
+            return "ERROR"
+        elif not trav.complete:
+            return "INCOMPLETE"
+        else:
+            return "OK"
+
+    def correct(self, word):
+        length = len(word)
+        id_cand = []  # candidate IDs
+        # filter by length
+        results = self.db.length_between(
+            (length - self._length_err, length + self._length_err))
+        if not results:
+            return None
+        # get from graph
+        id_cand = random.choice(results)
+        results = self.db.neighbors(id_cand)
+        if not results:
+            return None
+        id_cand = set()
+        for x in results:
+            id_cand.update(x)
+        # calculate edit distance
+        id_cand = list(id_cand)
+        id_cand.sort(key=partial(editdist, word))
+        return id_cand[0]
+
+    def process(self, word):
+        if self.check(word) == 'OK':
+            return 'OK'
+        else:
+            return ' '.join('WRONG', self.correct(word))
+
+    def add(self, word):
+        raise NotImplementedError
+
+
+# TODO
+def dist(word, target):
+    ed = editdist(word, target)
 
 
 class Costs:

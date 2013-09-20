@@ -37,12 +37,8 @@ import argparse
 import socket
 import atexit
 import shlex
-from functools import partial
-
-import pymysql
 
 from gzspell import analysis
-from gzspell import trie
 
 logger = logging.getLogger(__name__)
 
@@ -57,19 +53,14 @@ def main(*args):
     parser.add_argument('--pw', default='')
     args = parser.parse_args(args)
 
-    # build trie
-    t_words = _build_trie(args.host, args.db, args.user, "")
-    t_words = trie.Trie()
-    with open(args.wordlist) as f:
-        for line in f:
-            t_words.add(line.rstrip())
+    spell = analysis.Spell(
+        analysis.DB(host=args.host, db=args.db, user=args.user))
 
     # commands
     cmd_dict = {
-        "CHECK": partial(check, t_words),
-        "CORRECT": partial(
-            correct, host=args.host, db=args.db, user=args.user),
-        "PROCESS": process,
+        "CHECK": spell.check,
+        "CORRECT": spell.correct,
+        "PROCESS": spell.process,
     }
 
     # open socket
@@ -90,7 +81,14 @@ def main(*args):
         msg = _get(remote_sock)
         cmd, *args = shlex.split(msg)
         # calculate
-        result = cmd_dict[cmd](*args)
+        try:
+            result = cmd_dict[cmd](*args)
+        except KeyError as e:
+            logger.warning('KeyError in server mainloop %r', e)
+            continue
+        except TypeError as e:
+            logger.warning('TypeError in server mainloop %r', e)
+            continue
         # send data
         if result is not None:
             remote_sock.send(wrap(result))
@@ -101,85 +99,10 @@ def main(*args):
         remote_sock.close()
 
 
-def process(word, *, host, user, db, trie, length_err=2, num_cand=5):
-    if check(trie, word) == 'OK':
-        return 'OK'
-    else:
-        return ' '.join('WRONG', correct(
-            word, host=host, db=db, length_err=length_err, num_cand=num_cand))
-
-
-def correct(word, *, host, user, db, length_err=2, num_cand=5):
-    with pymysql.connect(host=host, user=user, db=db) as cur:
-        length = len(word)
-        id_cand = []  # candidate IDs
-        # filter by length
-        # TODO the filtering can be put into new functions...
-        results = cur.execute(
-            ' '.join(
-                'SELECT id FROM words WHERE length BETWEEN %d AND %d',
-                'ORDER BY frequency DESC',
-            ),
-            (length - length_err, length + length_err))
-        if not results:
-            return None
-        id_cand.extend(results)
-        # filter by first letter
-        results = cur.execute(
-            'SELECT id FROM words WHERE word LIKE %s',
-            word[0] + '%')
-        if not results:
-            return None
-        new = []
-        results = set(results)
-        for x in id_cand:
-            if x in results:
-                new.append(x)
-        id_cand = new
-        # get from graph
-        # TODO type, return value checks
-        id_cand = id_cand[:num_cand]
-        results = cur.executemany(' '.join(
-            'SELECT word FROM graph WHERE word1=%s',
-            'LEFT JOIN word ON graph.word2=word.id',
-        ), id_cand)
-        if not results:
-            return None
-        id_cand = set()
-        for x in results:
-            id_cand.update(x)
-        # calculate edit distance
-        id_cand = list(id_cand)
-        id_cand.sort(key=partial(analysis.editdist, word))
-        return id_cand[0]
-
-
-def check(trie_, word):
-    trav = trie.Traverser(trie_)
-    # TODO do this incrementally?
-    trav.traverse(word)
-    if trav.error:
-        assert not trav.complete
-        return "ERROR"
-    elif not trav.complete:
-        return "INCOMPLETE"
-    else:
-        return "OK"
-
-
 def wrap(chars):
     x = chars.encode('utf8')
     assert len(x) < 256
     return bytes([len(x)]) + chars.encode('utf8')
-
-
-def _build_trie(host, db, user, passwd):
-    t_words = trie.Trie()
-    with pymysql.connect(host=host, user=user, db=db) as cur:
-        words = cur.execute('SELECT word FROM words ORDER BY word')
-        for word in words:
-            t_words.add(word)
-    return t_words
 
 
 def _get(sock):
