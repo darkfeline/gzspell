@@ -41,7 +41,7 @@ class Costs:
 
     def __init__(self):
         self.costs = [
-            [None for i in range(len(self.keys))]
+            [float('+inf') for i in range(len(self.keys))]
             for j in range(len(self.keys))]
 
     def get(self, a, b):
@@ -88,16 +88,19 @@ def repl_cost(a, b):
 
 
 @lru_cache(2048)
-def editdist(word, target):
+def editdist(word, target, limit=None):
     # table[target][word]
     table = [
         [None for x in range(len(word) + 1)] for y in range(len(target) + 1)
     ]
     table[0][0] = 0
-    return _editdist(word, target, len(word), len(target), table)
+    try:
+        return _editdist(word, target, limit, len(word), len(target), table)
+    except LimitException:
+        return float('+inf')
 
 
-def _editdist(word, target, i_word, i_target, table):
+def _editdist(word, target, i_word, limit, i_target, table):
     """
     Parameters
     ----------
@@ -105,6 +108,8 @@ def _editdist(word, target, i_word, i_target, table):
         Word to calculate edit distance for
     target : str
         Target word to compare to
+    limit : Number or None
+        Cost limit before returning
     i_word : int
         Index for word substring slice, e.g. 3 for "apple" is slice
         "app"
@@ -120,7 +125,7 @@ def _editdist(word, target, i_word, i_target, table):
         logger.debug('Got inf')
         return float('+inf')
     if table[i_target][i_word] is None:
-        table[i_target][i_word] = min(
+        cost = min(
             # insert in word
             _editdist(word, target, i_word, i_target - 1, table) + 1,
             # delete in word
@@ -129,5 +134,11 @@ def _editdist(word, target, i_word, i_target, table):
             _editdist(word, target, i_word - 1, i_target - 1, table) +
             repl_cost(word[i_word - 1], target[i_target - 1])
         )
+        if limit is not None and cost >= limit:
+            raise LimitException
+        table[i_target][i_word] = cost
     logger.debug('Got %r', table[i_target][i_word])
     return table[i_target][i_word]
+
+
+class LimitException(Exception): pass
