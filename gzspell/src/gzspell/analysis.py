@@ -1,7 +1,10 @@
 from functools import lru_cache
 import logging
+import abc
 from functools import partial
 import random
+from operator import itemgetter
+from collections import defaultdict
 
 import pymysql
 
@@ -10,7 +13,34 @@ from gzspell import trie
 logger = logging.getLogger(__name__)
 
 
-class Database:
+class BaseDatabase(metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def wordfromid(self, id):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def freq(self, id):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def length_between(self, a, b):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def len_startswith(self, a, b, prefix):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def startswith(self, a):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def neighbors(self, word_id):
+        raise NotImplementedError
+
+
+class Database(BaseDatabase):
 
     def __init__(self, *args, **kwargs):
         self._args = args
@@ -54,6 +84,55 @@ class Database:
             return cur.execute(
                 'SELECT id FROM words WHERE word LIKE %s', a + '%')
 
+    def neighbors(self, word_id):
+        with self._connect() as cur:
+            return cur.executemany(' '.join(
+                'SELECT word FROM graph WHERE word1=%s',
+                'LEFT JOIN word ON graph.word2=word.id',
+            ), word_id)
+
+
+class SimpleDatabase(Database):
+
+    """Simple database implementation for testing purposes
+
+    Parameters
+    ----------
+    words : iterable
+        Iterable of units like (word, frequency)
+
+    """
+
+    def __init__(self, words):
+        self.words = sorted(words, key=itemgetter(0))
+        self.by_length = defaultdict(list)
+        for word in words:
+            self.by_length[len(word[0])].append(word)
+        self.graph = [
+            (a, b) for a in range(len(self.words))
+            for b in range(a, len(self.words)) if
+            editdist(*(self.words[i][0] for i in (a, b))) < 5
+        ]
+
+    def wordfromid(self, id):
+        return self.words[id][0]
+
+    def freq(self, id):
+        return self.words[id][1]
+
+    def length_between(self, a, b):
+        """Return words with length between a and b inclusive"""
+        return [word for i in range(a, b+1) for word, freq in
+                self.by_length[i]]
+
+    def len_startswith(self, a, b, prefix):
+        return [word for i in range(a, b+1) for word, freq in self.by_length[i]
+                if word.startswith(prefix)]
+
+    def startswith(self, a):
+        return [word for word, freq in self.words if word.startswith(a)]
+
+    # TODO
     def neighbors(self, word_id):
         with self._connect() as cur:
             return cur.executemany(' '.join(
