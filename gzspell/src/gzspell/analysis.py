@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 class BaseDatabase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
+    def hasword(self, word):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def wordfromid(self, id):
         raise NotImplementedError
 
@@ -57,6 +61,14 @@ class Database(BaseDatabase):
             for word in words:
                 t_words.add(word)
         return t_words
+
+    def hasword(self, word):
+        trav = trie.Traverser(self.db.trie)
+        trav.traverse(word)
+        if trav.error or not trav.complete:
+            return False
+        else:
+            return True
 
     def wordfromid(self, id):
         with self._connect() as cur:
@@ -110,9 +122,13 @@ class SimpleDatabase(Database):
             self.by_length[len(word[0])].append(word)
         self.graph = [
             (a, b) for a in range(len(self.words))
-            for b in range(a, len(self.words)) if
-            editdist(*(self.words[i][0] for i in (a, b))) < 5
+            for b in range(len(self.words)) if
+            editdist(*(self.words[i][0] for i in (a, b))) < 5 and
+            a != b
         ]
+
+    def hasword(self, word):
+        return word in [x[0] for x in self.words]
 
     def wordfromid(self, id):
         return self.words[id][0]
@@ -132,13 +148,8 @@ class SimpleDatabase(Database):
     def startswith(self, a):
         return [word for word, freq in self.words if word.startswith(a)]
 
-    # TODO
     def neighbors(self, word_id):
-        with self._connect() as cur:
-            return cur.executemany(' '.join(
-                'SELECT word FROM graph WHERE word1=%s',
-                'LEFT JOIN word ON graph.word2=word.id',
-            ), word_id)
+        return [y for x, y in self.graph if x == word_id]
 
 
 class Spell:
@@ -149,15 +160,10 @@ class Spell:
         self._threshold = 10
 
     def check(self, word):
-        trav = trie.Traverser(self.db.trie)
-        trav.traverse(word)
-        if trav.error:
-            assert not trav.complete
-            return "ERROR"
-        elif not trav.complete:
-            return "INCOMPLETE"
+        if self.db.hasword(word):
+            return 'OK'
         else:
-            return "OK"
+            return 'ERROR'
 
     def correct(self, word):
         length = len(word)

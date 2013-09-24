@@ -6,6 +6,32 @@ from gzspell import analysis
 logger = logging.getLogger(__name__)
 
 
+class TestSpell(unittest.TestCase):
+
+    def setUp(self):
+        db = analysis.SimpleDatabase([
+            ('apple', 0.25),
+            ('banana', 0.25),
+            ('bananas', 0.50),
+        ])
+        self.spell = analysis.Spell(db)
+
+    def test_check(self):
+        spell = self.spell
+        self.assertEquals(spell.check('apple'), 'OK')
+        self.assertEquals(spell.check('appl'), 'ERROR')
+        self.assertEquals(spell.check('nanoha'), 'ERROR')
+        self.assertEquals(spell.check('banana'), 'OK')
+        self.assertEquals(spell.check('bananas'), 'OK')
+        self.assertEquals(spell.check('banan'), 'ERROR')
+
+    @unittest.expectedFailure
+    def test_correct(self):
+        spell = self.spell
+        self.assertEquals(spell.correct('appel'), 'apple')
+        self.assertEquals(spell.correct('bananaa'), 'bananas')
+
+
 class TestSimpleDatabase(unittest.TestCase):
 
     def setUp(self):
@@ -14,6 +40,13 @@ class TestSimpleDatabase(unittest.TestCase):
             ('banana', 0.25),
             ('bananas', 0.50),
         ])
+
+    def test_hasword(self):
+        db = self.db
+        self.assertTrue(db.hasword('apple'))
+        self.assertTrue(db.hasword('banana'))
+        self.assertTrue(db.hasword('bananas'))
+        self.assertFalse(db.hasword('nanoha'))
 
     def test_wordfromid(self):
         db = self.db
@@ -111,3 +144,9 @@ class TestSimpleDatabase(unittest.TestCase):
         self.assertNotIn('apple', x)
         self.assertNotIn('banana', x)
         self.assertNotIn('bananas', x)
+
+    def test_neighbors(self):
+        db = self.db
+        logger.debug(db.graph)
+        self.assertIn(2, db.neighbors(1))
+        self.assertIn(1, db.neighbors(2))
