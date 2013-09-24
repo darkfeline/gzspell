@@ -87,9 +87,9 @@ class Database(BaseDatabase):
 
     def len_startswith(self, a, b, prefix):
         with self._connect() as cur:
-            return cur.execute(' '.join(
+            return cur.execute(' '.join((
                 'SELECT id FROM words WHERE length BETWEEN %d AND %d',
-                'AND word LIKE %s'), a, b, prefix + '%')
+                'AND word LIKE %s')), a, b, prefix + '%')
 
     def startswith(self, a):
         with self._connect() as cur:
@@ -98,10 +98,10 @@ class Database(BaseDatabase):
 
     def neighbors(self, word_id):
         with self._connect() as cur:
-            return cur.executemany(' '.join(
+            return cur.executemany(' '.join((
                 'SELECT word FROM graph WHERE word1=%s',
                 'LEFT JOIN word ON graph.word2=word.id',
-            ), word_id)
+            )), word_id)
 
 
 class SimpleDatabase(Database):
@@ -190,7 +190,7 @@ class Spell:
         if self.check(word) == 'OK':
             return 'OK'
         else:
-            return ' '.join('WRONG', self.correct(word))
+            return ' '.join(('WRONG', self.correct(word)))
 
     def add(self, word):
         raise NotImplementedError
