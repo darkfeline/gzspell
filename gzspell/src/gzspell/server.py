@@ -17,7 +17,6 @@ CHECK word
 
     - OK
     - ERROR
-    - INCOMPLETE
 
 CORRECT word
     Calculates the best correction for the given word and returns it.
