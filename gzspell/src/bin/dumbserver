@@ -19,7 +19,7 @@ def main(*args):
     args = parser.parse_args(args)
 
     spell = analysis.Spell(
-        analysis.SimpleDatabase(['apple', 'banana', 'bananas']))
+        analysis.SimpleDatabase([('apple', 0.25), ('banana', 0.25), ('bananas', 0.5)]))
 
     # commands
     cmd_dict = {
@@ -43,20 +43,10 @@ def main(*args):
             logger.debug(
                 'Got exception listening for socket connection %r', e)
             continue
-        try:
-            msg = _get(remote_sock)
-            cmd, *args = shlex.split(msg)
-            # calculate
-            result = cmd_dict[cmd](*args)
-        except KeyError as e:
-            logger.warning('KeyError in server mainloop %r', e)
-            continue
-        except TypeError as e:
-            logger.warning('TypeError in server mainloop %r', e)
-            continue
-        except ValueError as e:
-            logger.warning('ValueError in server mainloop %r', e)
-            continue
+        msg = _get(remote_sock)
+        cmd, *args = shlex.split(msg)
+        # calculate
+        result = cmd_dict[cmd](*args)
         # send data
         if result is not None:
             remote_sock.send(wrap(result))

@@ -116,10 +116,11 @@ class SimpleDatabase(Database):
     """
 
     def __init__(self, words):
-        self.words = sorted(words, key=itemgetter(0))
+        self.words = [word for word, freq in words]
+        self.freqs = [freq for word, freq in words]
         self.by_length = defaultdict(list)
-        for word in words:
-            self.by_length[len(word[0])].append(word)
+        for id, word in enumerate(words):
+            self.by_length[len(word[0])].append(id)
         self.graph = [
             (a, b) for a in range(len(self.words))
             for b in range(len(self.words)) if
@@ -128,25 +129,28 @@ class SimpleDatabase(Database):
         ]
 
     def hasword(self, word):
-        return word in [x[0] for x in self.words]
+        assert isinstance(word, str)
+        return word in self.words
 
     def wordfromid(self, id):
-        return self.words[id][0]
+        assert isinstance(id, int)
+        return self.words[id]
 
     def freq(self, id):
-        return self.words[id][1]
+        assert isinstance(id, int)
+        return self.freqs[id]
 
     def length_between(self, a, b):
         """Return words with length between a and b inclusive"""
-        return [word for i in range(a, b+1) for word, freq in
-                self.by_length[i]]
+        return [id for length in range(a, b+1) for id in
+                self.by_length[length]]
 
     def len_startswith(self, a, b, prefix):
-        return [word for i in range(a, b+1) for word, freq in self.by_length[i]
-                if word.startswith(prefix)]
+        return [id for length in range(a, b+1) for id in self.by_length[length]
+                if self.words[id].startswith(prefix)]
 
     def startswith(self, a):
-        return [word for word, freq in self.words if word.startswith(a)]
+        return [id for id, word in enumerate(self.words) if word.startswith(a)]
 
     def neighbors(self, word_id):
         return [y for x, y in self.graph if x == word_id]
@@ -166,31 +170,39 @@ class Spell:
             return 'ERROR'
 
     def correct(self, word):
+        logger.debug('correct(%r)', word)
+        assert isinstance(word, str)
         length = len(word)
         # get candidates
         id_candidates = self.db.len_startswith(
             length - self._length_err, length + self._length_err, word[0])
         if not id_candidates:
+            logger.debug('no candidates')
             return None
         # get from graph
         id_cand = random.choice(id_candidates)
+        dist = partial(self._id_dist, target=word)
         while True:
-            neighbors = self.db.neighbors(id_cand)
-            if not neighbors:
-                return None
-            id_cand = set()
-            for x in neighbors:
-                id_cand.update(x)
-            # calculate edit distance
-            id_cand = list(id_cand)
-            #id_cand.sort(key=partial(dist, word))
+            id_neighbors = self.db.neighbors(id_cand)
+            if not id_neighbors:
+                logger.debug('no neighbors')
+                break
+            id_neighbors.sort(key=dist)
+            if dist(id_cand) <= dist(id_neighbors[0]):
+                break
+            else:
+                id_cand = id_neighbors[0]
         return self.db.wordfromid(id_cand)
 
     def process(self, word):
         if self.check(word) == 'OK':
             return 'OK'
         else:
-            return ' '.join(('WRONG', self.correct(word)))
+            correct = self.correct(word)
+            return ' '.join(('WRONG', correct if correct is not None else ''))
+
+    def _id_dist(self, id_word, target):
+        return self.dist(self.db.wordfromid(id_word), target)
 
     def add(self, word):
         raise NotImplementedError
@@ -209,7 +221,7 @@ class Spell:
         cost += abs(len(target) - len(word))
         if target[0] != word[0]:
             cost += 1
-        cost *= self.db.freq(word)
+        cost *= self.db.freq(self.db.words.index(word))
         return cost
 
 
