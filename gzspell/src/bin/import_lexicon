@@ -23,7 +23,6 @@ graph.dat
 
 """
 
-
 import logging
 import argparse
 import json
