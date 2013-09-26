@@ -73,23 +73,23 @@ class Database(BaseDatabase):
 
     def wordfromid(self, id):
         with self._connect() as cur:
-            return cur.execute('SELECT word FROM words WHERE id=%d', id)
+            return cur.execute('SELECT word FROM words WHERE id=%s', id)
 
     def freq(self, id):
         with self._connect() as cur:
             return cur.execute(
-                'SELECT frequency FROM words WHERE id=%d', id)
+                'SELECT frequency FROM words WHERE id=%s', id)
 
     def length_between(self, a, b):
         with self._connect() as cur:
             return cur.execute(
-                'SELECT id FROM words WHERE length BETWEEN %d AND %d',
+                'SELECT id FROM words WHERE length BETWEEN %s AND %s',
                 (a, b))
 
     def len_startswith(self, a, b, prefix):
         with self._connect() as cur:
             return cur.execute(' '.join((
-                'SELECT id FROM words WHERE length BETWEEN %d AND %d',
+                'SELECT id FROM words WHERE length BETWEEN %s AND %s',
                 'AND word LIKE %s')), (a, b, prefix + '%'))
 
     def startswith(self, a):
