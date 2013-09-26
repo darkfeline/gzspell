@@ -29,18 +29,21 @@ import json
 
 import pymysql
 
+logger = logging.getLogger(__name__)
+
 
 def lexicon_iter(fname):
     with open(fname) as f:
         for line in f:
             x = json.loads(line)
-            yield (x[k] for k in ['id', 'word', 'frequency', 'length'])
+            yield tuple(x[k] for k in ['id', 'word', 'frequency', 'length'])
 
 
 def graph_iter(fname):
     with open(fname) as f:
         for line in f:
             x = json.loads(line)
+            logger.debug('doing %r', x)
             yield x
 
 
@@ -50,23 +53,26 @@ def main(*args):
     parser = argparse.ArgumentParser()
     parser.add_argument('lexicon')
     parser.add_argument('graph')
-    parser.add_argument('--db-server', default='localhost')
-    parser.add_argument('--db-name', default='lexicon')
+    parser.add_argument('--db-host', default='localhost')
+    parser.add_argument('--db', default='lexicon')
     parser.add_argument('--db-user', default='lexicon')
-    parser.add_argument('--db-passwd', default='')
+    parser.add_argument('--db-passwd', default='lexicon')
     args = parser.parse_args(args)
 
     with pymysql.connect(
-            host=args.db_server, user=args.db_user, db=args.db_name,
-            passwd=args.db_passwd) as cur:
-        cur.executemany(' '.join(
-            'INSERT INTO words (id, word, frequency, length)',
+            host=args.db_host, user=args.db_user, db=args.db,
+            passwd=args.db_passwd, charset='utf8') as cur:
+        cur.executemany(' '.join((
+            'INSERT IGNORE INTO words (id, word, frequency, length)',
             'VALUES',
-            '(%d, %s, %f, %d)'), lexicon_iter(args.lexicon))
-        cur.executemany(' '.join(
+            '(%s, %s, %s, %s)')), lexicon_iter(args.lexicon))
+    with pymysql.connect(
+            host=args.db_host, user=args.db_user, db=args.db,
+            passwd=args.db_passwd, charset='utf8') as cur:
+        cur.executemany(' '.join((
             'INSERT INTO graph (word1, word2)',
             'VALUES',
-            '(%d, %d)'), graph_iter(args.graph))
+            '(%s, %s)')), graph_iter(args.graph))
 
 if __name__ == '__main__':
     import sys
