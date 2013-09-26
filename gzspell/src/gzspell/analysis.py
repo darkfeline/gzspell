@@ -90,7 +90,7 @@ class Database(BaseDatabase):
         with self._connect() as cur:
             return cur.execute(' '.join((
                 'SELECT id FROM words WHERE length BETWEEN %d AND %d',
-                'AND word LIKE %s')), a, b, prefix + '%')
+                'AND word LIKE %s')), (a, b, prefix + '%'))
 
     def startswith(self, a):
         with self._connect() as cur:
