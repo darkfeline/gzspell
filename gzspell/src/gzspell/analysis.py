@@ -224,6 +224,8 @@ class Spell:
             Wrong word.
 
         """
+        assert isinstance(word, str)
+        assert isinstance(target, str)
         cost = editdist(word, target)
         cost += abs(len(target) - len(word))
         if target[0] != word[0]:
