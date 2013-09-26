@@ -53,10 +53,12 @@ def main(*args):
     parser.add_argument('--db-server', default='localhost')
     parser.add_argument('--db-name', default='lexicon')
     parser.add_argument('--db-user', default='lexicon')
+    parser.add_argument('--db-passwd', default='')
     args = parser.parse_args(args)
 
     with pymysql.connect(
-            host=args.db_server, user=args.db_user, db=args.db_name) as cur:
+            host=args.db_server, user=args.db_user, db=args.db_name,
+            passwd=args.db_passwd) as cur:
         cur.executemany(' '.join(
             'INSERT INTO words (id, word, frequency, length)',
             'VALUES',
