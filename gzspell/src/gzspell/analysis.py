@@ -75,36 +75,40 @@ class Database(BaseDatabase):
 
     def wordfromid(self, id):
         with self._connect() as cur:
-            return cur.execute('SELECT word FROM words WHERE id=%s', id)
+            cur.execute('SELECT word FROM words WHERE id=%s', id)
+            return [x[0] for x in cur.fetchall()]
 
     def freq(self, id):
         with self._connect() as cur:
-            return cur.execute(
-                'SELECT frequency FROM words WHERE id=%s', id)
+            cur.execute('SELECT frequency FROM words WHERE id=%s', id)
+            return [x[0] for x in cur.fetchall()]
 
     def length_between(self, a, b):
         with self._connect() as cur:
-            return cur.execute(
+            cur.execute(
                 'SELECT id FROM words WHERE length BETWEEN %s AND %s',
                 (a, b))
+            return [x[0] for x in cur.fetchall()]
 
     def len_startswith(self, a, b, prefix):
         with self._connect() as cur:
-            return cur.execute(' '.join((
+            cur.execute(' '.join((
                 'SELECT id FROM words WHERE length BETWEEN %s AND %s',
                 'AND word LIKE %s')), (a, b, prefix + '%'))
+            return [x[0] for x in cur.fetchall()]
 
     def startswith(self, a):
         with self._connect() as cur:
-            return cur.execute(
+            cur.execute(
                 'SELECT id FROM words WHERE word LIKE %s', a + '%')
+            return [x[0] for x in cur.fetchall()]
 
     def neighbors(self, word_id):
         with self._connect() as cur:
-            return cur.executemany(' '.join((
-                'SELECT word FROM graph WHERE word1=%s',
-                'LEFT JOIN word ON graph.word2=word.id',
-            )), word_id)
+            cur.execute(
+                'SELECT word2 FROM graph WHERE word1=%s',
+                word_id)
+            return [x[0] for x in cur.fetchall()]
 
 
 class SimpleDatabase(Database):
