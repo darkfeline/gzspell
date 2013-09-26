@@ -58,7 +58,7 @@ class Database(BaseDatabase):
         t_words = trie.Trie()
         with self._connect() as cur:
             cur.execute('SELECT word FROM words ORDER BY word')
-            words = cur.fetchall()
+            words = [x[0].decode('utf8') for x in cur.fetchall()]
             for word in words:
                 t_words.add(word)
         return t_words
