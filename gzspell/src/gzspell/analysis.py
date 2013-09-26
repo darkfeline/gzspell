@@ -76,7 +76,7 @@ class Database(BaseDatabase):
     def wordfromid(self, id):
         with self._connect() as cur:
             cur.execute('SELECT word FROM words WHERE id=%s', id)
-            return [x[0] for x in cur.fetchall()]
+            return cur.fetch()[0].decode('utf8')
 
     def freq(self, id):
         with self._connect() as cur:
