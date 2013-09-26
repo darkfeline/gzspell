@@ -8,10 +8,9 @@ SET time_zone = "+00:00";
 
 
 CREATE TABLE IF NOT EXISTS `graph` (
-  `id` int(11) NOT NULL,
   `word1` int(11) unsigned NOT NULL,
   `word2` int(11) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`word1`,`word2`),
   KEY `word1` (`word1`),
   KEY `word2` (`word2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -23,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `words` (
   `length` tinyint(3) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=458585 ;
 
 
 ALTER TABLE `graph`
