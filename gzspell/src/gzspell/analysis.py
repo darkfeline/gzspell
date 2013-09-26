@@ -81,7 +81,7 @@ class Database(BaseDatabase):
     def freq(self, id):
         with self._connect() as cur:
             cur.execute('SELECT frequency FROM words WHERE id=%s', id)
-            return [x[0] for x in cur.fetchall()]
+            return cur.fetchone()[0]
 
     def length_between(self, a, b):
         with self._connect() as cur:
