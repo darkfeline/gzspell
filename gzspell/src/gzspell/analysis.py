@@ -221,7 +221,7 @@ class Spell:
             Wrong word.
 
         """
-        assert isinstance(id_word, str)
+        assert isinstance(id_word, int)
         assert isinstance(target, str)
         word = self.db.wordfromid(id_word)
         cost = editdist(word, target)
