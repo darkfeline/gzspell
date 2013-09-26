@@ -57,7 +57,8 @@ class Database(BaseDatabase):
     def _build_trie(self):
         t_words = trie.Trie()
         with self._connect() as cur:
-            words = cur.execute('SELECT word FROM words ORDER BY word')
+            cur.execute('SELECT word FROM words ORDER BY word')
+            words = cur.fetchall()
             for word in words:
                 t_words.add(word)
         return t_words
