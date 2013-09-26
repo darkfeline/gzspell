@@ -188,7 +188,7 @@ class Spell:
             return None
         # get from graph
         id_cand = random.choice(id_candidates)
-        dist = partial(self._id_dist, target=word)
+        dist = partial(self.dist, target=word)
         while True:
             id_neighbors = self.db.neighbors(id_cand)
             if not id_neighbors:
@@ -208,29 +208,27 @@ class Spell:
             correct = self.correct(word)
             return ' '.join(('WRONG', correct if correct is not None else ''))
 
-    def _id_dist(self, id_word, target):
-        return self.dist(self.db.wordfromid(id_word), target)
-
     def add(self, word):
         raise NotImplementedError
 
-    def dist(self, word, target):
+    def dist(self, id_word, target):
         """
         Parameters
         ----------
-        word : str
+        id_word : int
             Correct word.
         target : str
             Wrong word.
 
         """
-        assert isinstance(word, str)
+        assert isinstance(id_word, str)
         assert isinstance(target, str)
+        word = self.db.wordfromid(id_word)
         cost = editdist(word, target)
         cost += abs(len(target) - len(word))
         if target[0] != word[0]:
             cost += 1
-        cost *= self.db.freq(self.db.words.index(word))
+        cost *= self.db.freq(id_word)
         return cost
 
 
