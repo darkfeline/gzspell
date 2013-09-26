@@ -64,7 +64,7 @@ class Database(BaseDatabase):
         return t_words
 
     def hasword(self, word):
-        trav = trie.Traverser(self.db.trie)
+        trav = trie.Traverser(self.trie)
         trav.traverse(word)
         if trav.error or not trav.complete:
             return False
