@@ -234,7 +234,7 @@ class Spell:
 
 class Costs:
 
-    keys = 'qwertyuiopasdfghjklzxcvbnm-'
+    keys = 'qwertyuiopasdfghjklzxcvbnm-\''
 
     _neighbors = {
         'q': ('w', 'a', 's'),
@@ -246,7 +246,7 @@ class Costs:
         'u': ('y', 'h', 'j', 'k', 'i'),
         'i': ('u', 'j', 'k', 'l', 'o'),
         'o': ('i', 'k', 'l', 'p'),
-        'p': ('o', 'l', '-'),
+        'p': ('o', 'l', '-', "'"),
         'a': ('q', 'w', 's', 'x', 'z'),
         's': ('q', 'a', 'z', 'x', 'c', 'd', 'e', 'w'),
         'd': ('w', 's', 'x', 'c', 'v', 'f', 'r', 'e'),
@@ -263,7 +263,8 @@ class Costs:
         'b': ('v', 'g', 'h', 'n'),
         'n': ('b', 'h', 'j', 'm'),
         'm': ('n', 'j', 'k', 'l'),
-        '-': ('p'),
+        '-': ('p',),
+        "'": ('p',),
     }
 
     def __init__(self):
