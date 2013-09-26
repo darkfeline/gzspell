@@ -82,9 +82,13 @@ def main(*args):
                 'Got exception listening for socket connection %r', e)
             continue
         msg = _get(remote_sock)
-        cmd, *args = shlex.split(msg)
-        # calculate
-        result = cmd_dict[cmd](*args)
+        try:
+            cmd, *args = shlex.split(msg)
+            # calculate
+            result = cmd_dict[cmd](*args)
+        except Exception as e:
+            logger.warning('Caught Exception %r', e)
+            result = None
         # send data
         if result is not None:
             remote_sock.send(wrap(result))
