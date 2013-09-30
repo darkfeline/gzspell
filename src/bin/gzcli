@@ -40,7 +40,7 @@ class Shell(cmd.Cmd):
         self.spell.update(word)
         print('OK')
 
-    def do_quit(self):
+    def do_quit(self, arg):
         return True
 
 
