@@ -17,6 +17,9 @@ class Server:
             "CHECK": self.spell.check,
             "CORRECT": self.spell.correct,
             "PROCESS": self.spell.process,
+            "ADD": self.spell.add,
+            "BUMP": self.spell.bump,
+            "UPDATE": self.spell.update,
         }
 
         sock = socket.socket(socket.AF_INET)

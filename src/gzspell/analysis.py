@@ -14,6 +14,7 @@ from gzspell import trie
 logger = logging.getLogger(__name__)
 
 GRAPH_THRESHOLD = 3
+INITIAL_FREQ = 0.01
 
 
 class BaseDatabase(metaclass=abc.ABCMeta):
@@ -133,14 +134,17 @@ class Database(BaseDatabase):
     def add_word(self, word, freq):
         self.trie.add(word)
         with self._connect() as cur:
-            cur.execute('SELECT id, word FROM words')
-            wordlist = cur.fetchall()
+            cur.execute('SELECT sum(frequency) FROM words')
+            total_freq = cur.fetchone()[0]
+            assert isinstance(total_freq, Number)
             cur.execute(
                 'INSERT INTO words SET word=%s, length=%s, frequency=%s',
-                (word, len(word), freq))
+                (word, len(word), total_freq * freq))
             cur.execute('SELECT LAST_INSERT_ID()')
             id = cur.fetchone()[0]
             assert isinstance(id, int)
+            cur.execute('SELECT id, word FROM words')
+            wordlist = cur.fetchall()
             cur.executemany(
                 'INSERT INTO graph (word1, word2) VALUES (%s, %s), (%s, %s)',
                 ((x, y, y, x) for x, y in zip(
@@ -217,8 +221,9 @@ class SimpleDatabase(Database):
         return [y for x, y in self.graph if x == word_id]
 
     def add_word(self, word, freq):
+        total_freq = sum(self.freqs)
         self.words.append(word)
-        self.freqs.append(freq)
+        self.freqs.append(freq * total_freq)
         self.by_length[len(word)].append(word)
         threshold = GRAPH_THRESHOLD
         id = self.words.index(word)
@@ -279,13 +284,16 @@ class Spell:
             return ' '.join(('WRONG', correct if correct is not None else ''))
 
     def add(self, word):
-        raise NotImplementedError
+        self.db.add_word(word, INITIAL_FREQ)
 
     def bump(self, word):
-        raise NotImplementedError
+        self.db.add_freq(word, 1)
 
     def update(self, word):
-        raise NotImplementedError
+        if not self.db.hasword(word):
+            self.add(word)
+        else:
+            self.bump(word)
 
     def dist(self, id_word, target):
         """

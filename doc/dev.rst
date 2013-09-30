@@ -160,11 +160,13 @@ The analysis module handles the actual spell-checking and correction.
 
    .. method:: add_word(word, freq)
 
-      Add word with the given intial frequency/count.
+      Add word with the given initial frequency proportion.  Doesn't check
+      if the word already exists.
 
    .. method:: add_freq(word, freq)
 
-      Add `freq` to the word's frequency/count.
+      Add `freq` to the word's frequency count.  Doesn't check if the
+      word already exists.
 
    .. method:: balance_freq()
 
