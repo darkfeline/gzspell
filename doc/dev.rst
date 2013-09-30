@@ -293,6 +293,15 @@ PROCESS word
     - OK
     - WRONG suggestion
 
+ADD word
+    Add a new word to the dictionary.
+
+BUMP word
+    Bump the frequency of an existing word.
+
+UPDATE word
+    Add a new word to the dictionary, or bump if it exists.
+
 Database Schema
 ===============
 
