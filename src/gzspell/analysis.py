@@ -5,12 +5,15 @@ from functools import partial
 import random
 from operator import itemgetter
 from collections import defaultdict
+from numbers import Number
 
 import pymysql
 
 from gzspell import trie
 
 logger = logging.getLogger(__name__)
+
+GRAPH_THRESHOLD = 3
 
 
 class BaseDatabase(metaclass=abc.ABCMeta):
@@ -94,8 +97,10 @@ class Database(BaseDatabase):
         with self._connect() as cur:
             cur.execute('SELECT frequency FROM words WHERE id=%s', id)
             count = cur.fetchone()[0]
+            assert isinstance(count, Number)
             cur.execute('SELECT sum(frequency) FROM words')
             total = cur.fetchone()[0]
+            assert isinstance(total, Number)
             return count / total
 
     def length_between(self, a, b):
@@ -128,10 +133,25 @@ class Database(BaseDatabase):
     def add_word(self, word, freq):
         self.trie.add(word)
         with self._connect() as cur:
+            cur.execute('SELECT id, word FROM words')
+            wordlist = cur.fetchall()
             cur.execute(
                 'INSERT INTO words SET word=%s, length=%s, frequency=%s',
                 (word, len(word), freq))
-        # TODO update graph
+            cur.execute('SELECT LAST_INSERT_ID()')
+            id = cur.fetchone()[0]
+            assert isinstance(id, int)
+            cur.executemany(
+                'INSERT INTO graph (word1, word2) VALUES (%s, %s), (%s, %s)',
+                ((x, y, y, x) for x, y in zip(
+                    repeat(id), self._gen_graph(word, wordlist))))
+
+    @staticmethod
+    def _gen_graph(target, wordlist):
+        threshold = GRAPH_THRESHOLD
+        for id, word in wordlist:
+            if editdist(word, target, threshold) < threshold:
+                yield id
 
     def add_freq(self, word, freq):
         with self._connect() as cur:
@@ -200,7 +220,11 @@ class SimpleDatabase(Database):
         self.words.append(word)
         self.freqs.append(freq)
         self.by_length[len(word)].append(word)
-        # TODO build graph
+        threshold = GRAPH_THRESHOLD
+        id = self.words.index(word)
+        for x in (id for id, word2 in enumerate(self.words)
+                  if editdist(word2, word, threshold) < threshold):
+            self.graph.append((id, x))
 
     def add_freq(self, word, freq):
         self.freqs[self.words.index(word)] += freq

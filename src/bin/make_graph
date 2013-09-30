@@ -50,7 +50,7 @@ def sublist(list, i):
         i += 1
 
 
-def pairer(words, threshold=3):
+def pairer(words, threshold):
     for i, x in enumerate(words):
         for y in sublist(words, i+1):
             logger.debug('trying to pair %r, %r', x, y)
@@ -69,7 +69,7 @@ def main(*args):
 
     words = [(x['id'], x['word']) for x in lexicon_iter(args.lexicon)]
     with open(args.graph, 'w') as f:
-        for x, y in pairer(words):
+        for x, y in pairer(words, analysis.GRAPH_THRESHOLD):
             f.write(json.dumps([x, y]) + '\n')
             f.write(json.dumps([y, x]) + '\n')
 
