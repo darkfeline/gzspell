@@ -1,4 +1,10 @@
-*.swp
-*.class
-*.pyc
+*.sw[po]
+*.py[co]
 __pycache__
+
+/build
+/dist
+/MANIFEST
+
+/virt-env
+.ropeproject

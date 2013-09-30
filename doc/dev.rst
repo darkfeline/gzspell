@@ -303,3 +303,11 @@ words has the following columns:
 Most are self-explanatory.  ``frequency`` is a misnomer; it contains a
 count and is averaged over the table sum for the actual frequency.
 ``frequency`` is balanced periodically, so it can be a float.
+
+graph contains two columns:
+
+- word1
+- word2
+
+Self-explanatory, mapping word ids to word ids, for words with an edit
+distance below a given threshold.

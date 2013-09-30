@@ -8,9 +8,8 @@ Requirements
 
 - Python 3
 - pymysql
-- Web browser for frontend
 - MySQL or compatible RDB (schema included)
-- Java for scripts?
+- Web browser for frontend
 
 General Design
 --------------
