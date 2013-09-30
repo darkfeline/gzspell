@@ -179,6 +179,10 @@ The analysis module handles the actual spell-checking and correction.
    The Database constructor takes the same arguments as pymysql's
    connect().
 
+   Database is probably thread-safe.  If the trie is removed, then
+   Database will be definitely probably thread-safe, since it is only
+   running on MySQL.
+
 .. class:: SimpleDatabase(words)
 
    Simple, unoptimized implementation of BaseDatabase with native Python
@@ -186,6 +190,8 @@ The analysis module handles the actual spell-checking and correction.
 
    `words` is an iterable of tuples like (word, frequency) of words to
    add to the database.
+
+   SimpleDatabase might be thread-safe.  Flip a coin.
 
 .. class:: Spell(db)
 
