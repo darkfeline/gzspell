@@ -20,22 +20,25 @@ class Shell(cmd.Cmd):
         self.spell = spell
 
     def do_check(self, word):
-        self.spell.check(word)
+        print(self.spell.check(word))
 
     def do_correct(self, word):
-        self.spell.correct(word)
+        print(self.spell.correct(word))
 
     def do_process(self, word):
-        self.spell.process(word)
+        print(self.spell.process(word))
 
     def do_add(self, word):
         self.spell.add(word)
+        print('OK')
 
     def do_bump(self, word):
         self.spell.bump(word)
+        print('OK')
 
     def do_update(self, word):
         self.spell.update(word)
+        print('OK')
 
 
 def main(*args):
