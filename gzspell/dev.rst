@@ -160,12 +160,21 @@ The analysis module handles the actual spell-checking and correction.
 
    .. method:: add_word(word, freq)
 
-      Add word
+      Add word with the given intial frequency/count.
+
+   .. method:: add_freq(word, freq)
+
+      Add `freq` to the word's frequency/count.
+
+   .. method:: balance_freq()
+
+      Balance frequencies in the database.
 
 .. class:: Database(*args, **kwargs)
 
-   A MySQL/RDB implementation of BaseDatabase.  The actual
-   implementation.
+   A MySQL/RDB implementation of BaseDatabase, coupled with a trie for
+   membership testing (probably unneeded and slower than just a SQL
+   query; oh well).  The actual implementation.
 
    The Database constructor takes the same arguments as pymysql's
    connect().

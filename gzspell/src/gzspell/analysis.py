@@ -43,6 +43,18 @@ class BaseDatabase(metaclass=abc.ABCMeta):
     def neighbors(self, word_id):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def add_word(self, word, freq):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_freq(self, word, freq):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def balance_freq(self):
+        raise NotImplementedError
+
 
 class Database(BaseDatabase):
 
@@ -81,7 +93,10 @@ class Database(BaseDatabase):
     def freq(self, id):
         with self._connect() as cur:
             cur.execute('SELECT frequency FROM words WHERE id=%s', id)
-            return cur.fetchone()[0]
+            count = cur.fetchone()[0]
+            cur.execute('SELECT sum(frequency) FROM words')
+            total = cur.fetchone()[0]
+            return count / total
 
     def length_between(self, a, b):
         with self._connect() as cur:
@@ -109,6 +124,23 @@ class Database(BaseDatabase):
                 'SELECT word2 FROM graph WHERE word1=%s',
                 word_id)
             return [x[0] for x in cur.fetchall()]
+
+    def add_word(self, word, freq):
+        self.trie.add(word)
+        with self._connect() as cur:
+            cur.execute(
+                'INSERT INTO words SET word=%s, length=%s, frequency=%s',
+                (word, len(word), freq))
+        # TODO update graph
+
+    def add_freq(self, word, freq):
+        with self._connect() as cur:
+            cur.execute(
+                'UPDATE words SET frequency=frequency + %s WHERE word=%s',
+                (word, freq))
+
+    def balance_freq(self):
+        raise NotImplementedError
 
 
 class SimpleDatabase(Database):
@@ -145,7 +177,9 @@ class SimpleDatabase(Database):
 
     def freq(self, id):
         assert isinstance(id, int)
-        return self.freqs[id]
+        count = self.freqs[id]
+        total = sum(self.freqs)
+        return count / total
 
     def length_between(self, a, b):
         """Return words with length between a and b inclusive"""
@@ -161,6 +195,18 @@ class SimpleDatabase(Database):
 
     def neighbors(self, word_id):
         return [y for x, y in self.graph if x == word_id]
+
+    def add_word(self, word, freq):
+        self.words.append(word)
+        self.freqs.append(freq)
+        self.by_length[len(word)].append(word)
+        # TODO build graph
+
+    def add_freq(self, word, freq):
+        self.freqs[self.words.index(word)] += freq
+
+    def balance_freq(self):
+        raise NotImplementedError
 
 
 class Spell:
