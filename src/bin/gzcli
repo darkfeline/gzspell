@@ -3,6 +3,7 @@
 import sys
 import logging
 import argparse
+import cmd
 
 from gzspell import analysis
 from gzspell import server
@@ -47,6 +48,9 @@ def main(*args):
 
     spell = analysis.Spell(analysis.Database(
             host=args.host, db=args.db, user=args.user, passwd=args.passwd))
+
+    c = Shell(spell)
+    c.cmdloop()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
