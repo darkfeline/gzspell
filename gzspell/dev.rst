@@ -158,6 +158,10 @@ The analysis module handles the actual spell-checking and correction.
       Return the ids of all of the neighbors of the word with the
       given id.
 
+   .. method:: add_word(word, freq)
+
+      Add word
+
 .. class:: Database(*args, **kwargs)
 
    A MySQL/RDB implementation of BaseDatabase.  The actual
@@ -271,3 +275,22 @@ PROCESS word
 
     - OK
     - WRONG suggestion
+
+Database Schema
+===============
+
+An .sql file with the appropriate schema is included.  The following
+describes the general structure of the database.
+
+There are two tables: words and graph.
+
+words has the following columns:
+
+- id
+- word
+- length
+- frequency
+
+Most are self-explanatory.  ``frequency`` is a misnomer; it contains a
+count and is averaged over the table sum for the actual frequency.
+``frequency`` is balanced periodically, so it can be a float.
