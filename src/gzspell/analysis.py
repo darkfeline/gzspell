@@ -133,13 +133,15 @@ class Database(BaseDatabase):
             return [x[0] for x in cur.fetchall()]
 
     def add_word(self, word, freq):
+        logger.debug('add_word(%r, %r)', word, freq)
         self.trie.add(word)
         with self._connect() as cur:
             cur.execute('SELECT sum(frequency) FROM words')
             total_freq = cur.fetchone()[0]
             assert isinstance(total_freq, Number)
-            cur.execute(
-                'INSERT INTO words SET word=%s, length=%s, frequency=%s',
+            cur.execute(' '.join((
+                    'INSERT INTO IGNORE words SET',
+                    'word=%s, length=%s, frequency=%s',)),
                 (word, len(word), total_freq * freq))
             cur.execute('SELECT LAST_INSERT_ID()')
             id = cur.fetchone()[0]
@@ -153,6 +155,7 @@ class Database(BaseDatabase):
 
     @staticmethod
     def _gen_graph(target, wordlist):
+        logger.debug('_gen_graph(%r, wordlist)', target)
         threshold = GRAPH_THRESHOLD
         for id, word in wordlist:
             if editdist(word, target, threshold) < threshold:
