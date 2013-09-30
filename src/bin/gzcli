@@ -16,6 +16,7 @@ class Shell(cmd.Cmd):
     prompt = '(gzspell) '
 
     def __init__(self, spell):
+        super().__init__()
         self.spell = spell
 
     def do_check(self, word):
