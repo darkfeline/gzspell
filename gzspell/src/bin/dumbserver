@@ -3,11 +3,9 @@
 import sys
 import logging
 import argparse
-import socket
-import atexit
-import shlex
 
 from gzspell import analysis
+from gzspell import server
 
 logger = logging.getLogger(__name__)
 
@@ -18,65 +16,11 @@ def main(*args):
     parser.add_argument('--port', type=int, default=9000)
     args = parser.parse_args(args)
 
-    spell = analysis.Spell(
-        analysis.SimpleDatabase([('apple', 0.25), ('banana', 0.25), ('bananas', 0.5)]))
-
-    # commands
-    cmd_dict = {
-        "CHECK": spell.check,
-        "CORRECT": spell.correct,
-        "PROCESS": spell.process,
-    }
-
-    # open socket
-    sock = socket.socket(socket.AF_INET)
-    addr = ('', args.port)
-    sock.bind(addr)
-    atexit.register(_close, sock)
-    sock.listen(5)
-    logger.debug("Socket bound and listening to %r", addr)
-
-    while True:
-        try:
-            remote_sock, addr = sock.accept()
-        except OSError as e:
-            logger.debug(
-                'Got exception listening for socket connection %r', e)
-            continue
-        msg = _get(remote_sock)
-        cmd, *args = shlex.split(msg)
-        # calculate
-        result = cmd_dict[cmd](*args)
-        # send data
-        if result is not None:
-            remote_sock.send(wrap(result))
-        else:
-            remote_sock.send(bytes([0]))
-
-        remote_sock.shutdown(socket.SHUT_RDWR)
-        remote_sock.close()
-
-
-def wrap(chars):
-    x = chars.encode('utf8')
-    assert len(x) < 256
-    return bytes([len(x)]) + chars.encode('utf8')
-
-
-def _get(sock):
-    size = sock.recv(1)
-    size = size[0]
-    logger.debug("Got size %r", size)
-    if not size:
-        return None
-    msg = sock.recv(size).decode('utf8')
-    logger.debug("Got msg %r", msg)
-    return msg
-
-
-def _close(sock):
-    sock.shutdown(socket.SHUT_RDWR)
-    sock.close()
+    s = server.Server(
+        analysis.Spell(analysis.SimpleDatabase(
+            [('apple', 0.25), ('banana', 0.25), ('bananas', 0.5)])),
+        args.port)
+    s.run()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
