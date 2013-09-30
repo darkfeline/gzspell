@@ -140,7 +140,7 @@ class Database(BaseDatabase):
             total_freq = cur.fetchone()[0]
             assert isinstance(total_freq, Number)
             cur.execute(' '.join((
-                    'INSERT INTO IGNORE words SET',
+                    'INSERT IGNORE INTO words SET',
                     'word=%s, length=%s, frequency=%s',)),
                 (word, len(word), total_freq * freq))
             cur.execute('SELECT LAST_INSERT_ID()')
