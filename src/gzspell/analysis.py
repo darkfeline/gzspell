@@ -6,6 +6,7 @@ import random
 from operator import itemgetter
 from collections import defaultdict
 from numbers import Number
+from itertools import repeat
 
 import pymysql
 
