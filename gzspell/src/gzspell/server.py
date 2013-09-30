@@ -1,36 +1,3 @@
-"""
-Server module
-
-The server opens an INET socket locally at a given port (defaults to
-9000).
-
-Messages sent to and from the server are wrapped as follows:  First byte
-indicates the number of following bytes (NOT characters), up to 255.
-Messages are encoded in UTF-8.  See wrap().
-
-Commands sent to the server have the format: "COMMAND arguments"
-
-The server recognizes the following commands:
-
-CHECK word
-    Checks the given word and returns:
-
-    - OK
-    - ERROR
-
-CORRECT word
-    Calculates the best correction for the given word and returns it.
-
-PROCESS word
-    Checks and corrects if not correct:
-
-    - OK
-    - WRONG suggestion
-
-Socket is closed after each transaction.
-
-"""
-
 import logging
 import socket
 import shlex

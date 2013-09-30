@@ -211,6 +211,12 @@ class Spell:
     def add(self, word):
         raise NotImplementedError
 
+    def bump(self, word):
+        raise NotImplementedError
+
+    def update(self, word):
+        raise NotImplementedError
+
     def dist(self, id_word, target):
         """
         Parameters
