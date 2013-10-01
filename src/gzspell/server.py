@@ -1,6 +1,7 @@
 import logging
 import socket
 import shlex
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class Server:
 
         sock = socket.socket(socket.AF_INET)
         addr = ('', self.port)
+        threads = []
 
         try:
             sock.bind(addr)
@@ -37,23 +39,39 @@ class Server:
                         'Got exception listening for socket connection %r', e)
                     continue
                 msg = _get(remote_sock)
-                try:
-                    cmd, *args = shlex.split(msg)
-                    # calculate
-                    result = cmd_dict[cmd](*args)
-                except Exception as e:
-                    logger.warning('Caught Exception %r', e)
-                    result = None
-                # send data
-                if result is not None:
-                    remote_sock.send(wrap(result))
-                else:
-                    remote_sock.send(bytes([0]))
-
-                remote_sock.shutdown(socket.SHUT_RDWR)
-                remote_sock.close()
+                cmd, *args = shlex.split(msg)
+                # calculate
+                t = RequestHandler(remote_sock, cmd_dict[cmd], args)
+                t.start()
+                threads.append(t)
+                i = 0
+                while i < len(threads):
+                    t = threads[i]
+                    if not t.is_alive():
+                        t.join()
+                        threads.pop(i)
+                    else:
+                        i += 1
         finally:
             _close(sock)
+
+
+class RequestHandler(threading.Thread):
+
+    def __init__(self, sock, cmd, args):
+        super().__init__()
+        self.sock = sock
+        self.cmd = cmd
+        self.args = args
+
+    def run(self):
+        result = self.cmd(*self.args)
+        if result is not None:
+            self.sock.send(wrap(result))
+        else:
+            self.sock.send(bytes([0]))
+        self.sock.shutdown(socket.SHUT_RDWR)
+        self.sock.close()
 
 
 def wrap(chars):
