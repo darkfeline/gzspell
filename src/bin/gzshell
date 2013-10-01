@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+
+import sys
+import logging
+import argparse
+import cmd
+
+from gzspell import analysis
+from gzspell import server
+
+logger = logging.getLogger(__name__)
+
+
+class Shell(cmd.Cmd):
+    intro = 'Type help or ? to list commands.\n'
+    prompt = '(gzspell) '
+
+    def __init__(self, spell):
+        super().__init__()
+        self.spell = spell
+
+    def do_check(self, word):
+        print(self.spell.check(word))
+
+    def do_correct(self, word):
+        print(self.spell.correct(word))
+
+    def do_process(self, word):
+        print(self.spell.process(word))
+
+    def do_add(self, word):
+        self.spell.add(word)
+        print('OK')
+
+    def do_bump(self, word):
+        self.spell.bump(word)
+        print('OK')
+
+    def do_update(self, word):
+        self.spell.update(word)
+        print('OK')
+
+    def do_quit(self, arg):
+        return True
+
+
+def main(*args):
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', default='localhost')
+    parser.add_argument('--db', default='lexicon')
+    parser.add_argument('--user', default='lexicon')
+    parser.add_argument('--passwd', default='')
+    args = parser.parse_args(args)
+
+    spell = analysis.Spell(analysis.Database(
+            host=args.host, db=args.db, user=args.user, passwd=args.passwd))
+
+    c = Shell(spell)
+    c.cmdloop()
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    main(*sys.argv[1:])
+
+# vim: set ft=python:
