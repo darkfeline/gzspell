@@ -72,7 +72,7 @@ class Database(BaseDatabase):
         with self._connect() as cur:
             cur.execute('SELECT id FROM words WHERE word=%s', word)
             x = cur.fetchone()
-            if x[0]:
+            if x:
                 return True
             else:
                 return False
