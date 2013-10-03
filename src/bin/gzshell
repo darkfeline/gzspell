@@ -23,16 +23,6 @@ class Shell(cmd.Cmd):
         self.spell = spell
         self.profile = False
 
-    @staticmethod
-    def _profile(method):
-        def f(self, arg):
-            if self.profile:
-                cProfile.run('{}(self, "{}")'.format(method.__name__,
-                                                     shlex.quote(arg)))
-            else:
-                method(arg)
-        return f
-
     def do_profile(self, arg):
         if arg in ('on',):
             self.profile = True
@@ -71,6 +61,15 @@ class Shell(cmd.Cmd):
 
     def do_quit(self, arg):
         return True
+
+def _profile(method):
+    def f(self, arg):
+        if self.profile:
+            cProfile.run('{}(self, "{}")'.format(method.__name__,
+                                                 shlex.quote(arg)))
+        else:
+            method(arg)
+    return f
 
 
 def main(*args):
