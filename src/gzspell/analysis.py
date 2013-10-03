@@ -134,8 +134,9 @@ class Database(BaseDatabase):
             assert isinstance(id, int)
             cur.execute('SELECT id, word FROM words')
             wordlist = [(a, b.decode('utf8')) for a, b in cur.fetchall()]
-            cur.executemany(
-                'INSERT INTO graph (word1, word2) VALUES (%s, %s), (%s, %s)',
+            cur.executemany(' '.join((
+                'INSERT IGNORE INTO graph (word1, word2) VALUES',
+                '(%s, %s), (%s, %s)',)),
                 ((x, y, y, x) for x, y in zip(
                     repeat(id), self._gen_graph(word, wordlist))))
 
