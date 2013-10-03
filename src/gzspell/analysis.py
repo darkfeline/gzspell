@@ -10,8 +10,6 @@ from itertools import repeat
 
 import pymysql
 
-from gzspell import trie
-
 logger = logging.getLogger(__name__)
 
 GRAPH_THRESHOLD = 3
@@ -66,29 +64,18 @@ class Database(BaseDatabase):
     def __init__(self, *args, **kwargs):
         self._args = args
         self._kwargs = kwargs
-        self.trie = self._build_trie()
 
     def _connect(self):
         return pymysql.connect(*self._args, **self._kwargs)
 
-    def _build_trie(self):
-        t_words = trie.Trie()
-        with self._connect() as cur:
-            cur.execute('SELECT word FROM words ORDER BY word')
-            words = [x[0].decode('utf8') for x in cur.fetchall()]
-            for word in words:
-                t_words.add(word)
-        return t_words
-
     def hasword(self, word):
-        trav = trie.Traverser(self.trie)
-        trav.traverse(word)
-        if trav.error or not trav.complete:
-            logger.debug("doesn't have word %r", word)
-            return False
-        else:
-            logger.debug('has word %r', word)
-            return True
+        with self._connect() as cur:
+            cur.execute('SELECT id FROM words WHERE word=%s', word)
+            x = cur.fetchone()
+            if x[0]:
+                return True
+            else:
+                return False
 
     def wordfromid(self, id):
         with self._connect() as cur:
