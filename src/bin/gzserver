@@ -18,7 +18,9 @@ def main(*args):
     parser.add_argument('--db', default='lexicon')
     parser.add_argument('--user', default='lexicon')
     parser.add_argument('--passwd', default='')
+    parser.add_argument('--loglevel', defalt='WARNING')
     args = parser.parse_args(args)
+    logging.basicConfig(level=args.loglevel)
 
     s = server.Server(
         analysis.Spell(analysis.Database(
@@ -27,7 +29,6 @@ def main(*args):
     s.run()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     main(*sys.argv[1:])
 
 # vim: set ft=python:

@@ -80,7 +80,9 @@ def main(*args):
     parser.add_argument('--db', default='lexicon')
     parser.add_argument('--user', default='lexicon')
     parser.add_argument('--passwd', default='')
+    parser.add_argument('--loglevel', defalt='WARNING')
     args = parser.parse_args(args)
+    logging.basicConfig(level=args.loglevel)
 
     spell = analysis.Spell(analysis.Database(
             host=args.host, db=args.db, user=args.user, passwd=args.passwd))
@@ -89,7 +91,6 @@ def main(*args):
     c.cmdloop()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     main(*sys.argv[1:])
 
 # vim: set ft=python:

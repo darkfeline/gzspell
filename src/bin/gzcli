@@ -34,8 +34,9 @@ def main(*args):
     parser.add_argument('--user', default='lexicon')
     parser.add_argument('--passwd', default='')
     parser.add_argument('--profile', action='store_true')
-
+    parser.add_argument('--loglevel', defalt='WARNING')
     args = parser.parse_args(args)
+    logging.basicConfig(level=args.loglevel)
 
     if args.profile:
         cProfile.run('print(cmd_dict[args.command](*args.args))')
@@ -43,7 +44,6 @@ def main(*args):
         print(cmd_dict[args.command](*args.args))
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     main(*sys.argv[1:])
 
 # vim: set ft=python:
