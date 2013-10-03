@@ -121,7 +121,6 @@ class Database(BaseDatabase):
 
     def add_word(self, word, freq):
         logger.debug('add_word(%r, %r)', word, freq)
-        self.trie.add(word)
         with self._connect() as cur:
             cur.execute('SELECT sum(frequency) FROM words')
             total_freq = cur.fetchone()[0]
