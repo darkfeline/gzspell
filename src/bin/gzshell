@@ -17,17 +17,18 @@ class Shell(cmd.Cmd):
 
     intro = 'Type help or ? to list commands.\n'
     prompt = '(gzspell) '
-    profile = False
 
     def __init__(self, spell):
         super().__init__()
         self.spell = spell
+        self.profile = False
 
-    def _profile(self, method):
-        def f(arg):
+    @staticmethod
+    def _profile(method):
+        def f(self, arg):
             if self.profile:
-                cProfile.run('self.{}("{}")'.format(method.__name__,
-                                                    shlex.quote(arg)))
+                cProfile.run('{}(self, "{}")'.format(method.__name__,
+                                                     shlex.quote(arg)))
             else:
                 method(arg)
         return f
