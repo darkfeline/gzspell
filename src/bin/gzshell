@@ -41,23 +41,29 @@ class Shell(cmd.Cmd):
             self.profile = not self.profile
         print(self.profile)
 
+    @_profile
     def do_check(self, word):
         print(self.spell.check(word))
 
+    @_profile
     def do_correct(self, word):
         print(self.spell.correct(word))
 
+    @_profile
     def do_process(self, word):
         print(self.spell.process(word))
 
+    @_profile
     def do_add(self, word):
         self.spell.add(word)
         print('OK')
 
+    @_profile
     def do_bump(self, word):
         self.spell.bump(word)
         print('OK')
 
+    @_profile
     def do_update(self, word):
         self.spell.update(word)
         print('OK')
