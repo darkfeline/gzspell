@@ -13,6 +13,16 @@ from gzspell import server
 logger = logging.getLogger(__name__)
 
 
+def _profile(method):
+    def f(self, arg):
+        if self.profile:
+            cProfile.run('{}(self, "{}")'.format(method.__name__,
+                                                 shlex.quote(arg)))
+        else:
+            method(arg)
+    return f
+
+
 class Shell(cmd.Cmd):
 
     intro = 'Type help or ? to list commands.\n'
@@ -61,15 +71,6 @@ class Shell(cmd.Cmd):
 
     def do_quit(self, arg):
         return True
-
-def _profile(method):
-    def f(self, arg):
-        if self.profile:
-            cProfile.run('{}(self, "{}")'.format(method.__name__,
-                                                 shlex.quote(arg)))
-        else:
-            method(arg)
-    return f
 
 
 def main(*args):
