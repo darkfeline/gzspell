@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 def _profile(method):
     def f(self, arg):
         if self.profile:
-            cProfile.run('{}(self, "{}")'.format(method.__name__,
-                                                 pipes.quote(arg)))
+            cProfile.run('method(self, "{}")'.format(pipes.quote(arg)))
         else:
             method(self, arg)
     return f
