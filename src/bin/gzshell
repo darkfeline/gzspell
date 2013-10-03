@@ -19,7 +19,7 @@ def _profile(method):
             cProfile.run('{}(self, "{}")'.format(method.__name__,
                                                  shlex.quote(arg)))
         else:
-            method(arg)
+            method(self, arg)
     return f
 
 
