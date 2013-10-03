@@ -25,7 +25,7 @@ def main(*args):
     spell = analysis.Spell(analysis.Database(
             host=args.host, db=args.db, user=args.user, passwd=args.passwd))
 
-    valid = re.compile(r"^[a-z0-9'-]*$")
+    valid = re.compile(r"^[a-z' -]*$")
     for file in args.files:
         print('Doing file {}'.format(file))
         with open(file) as f:
