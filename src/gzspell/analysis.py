@@ -84,10 +84,10 @@ class Database(BaseDatabase):
         trav = trie.Traverser(self.trie)
         trav.traverse(word)
         if trav.error or not trav.complete:
-            logger.debug('has word %r', word)
+            logger.debug("doesn't have word %r", word)
             return False
         else:
-            logger.debug("doesn't have word %r", word)
+            logger.debug('has word %r', word)
             return True
 
     def wordfromid(self, id):
