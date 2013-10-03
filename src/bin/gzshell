@@ -4,7 +4,7 @@ import sys
 import logging
 import argparse
 import cmd
-import shlex
+import pipes
 import cProfile
 
 from gzspell import analysis
@@ -17,7 +17,7 @@ def _profile(method):
     def f(self, arg):
         if self.profile:
             cProfile.run('{}(self, "{}")'.format(method.__name__,
-                                                 shlex.quote(arg)))
+                                                 pipes.quote(arg)))
         else:
             method(self, arg)
     return f
