@@ -80,7 +80,7 @@ def main(*args):
     parser.add_argument('--db', default='lexicon')
     parser.add_argument('--user', default='lexicon')
     parser.add_argument('--passwd', default='')
-    parser.add_argument('--loglevel', defalt='WARNING')
+    parser.add_argument('--loglevel', default='WARNING')
     args = parser.parse_args(args)
     logging.basicConfig(level=args.loglevel)
 
