@@ -16,49 +16,6 @@ GRAPH_THRESHOLD = 3
 INITIAL_FREQ = 0.01
 
 
-class BaseDatabase(metaclass=abc.ABCMeta):
-
-    @abc.abstractmethod
-    def hasword(self, word):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def wordfromid(self, id):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def freq(self, id):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def length_between(self, a, b):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def len_startswith(self, a, b, prefix):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def startswith(self, a):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def neighbors(self, word_id):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def add_word(self, word, freq):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def add_freq(self, word, freq):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def balance_freq(self):
-        raise NotImplementedError
-
-
 class Database(BaseDatabase):
 
     def __init__(self, *args, **kwargs):
@@ -157,76 +114,6 @@ class Database(BaseDatabase):
     def balance_freq(self):
         raise NotImplementedError
 
-
-class SimpleDatabase(Database):
-
-    """Simple database implementation for testing purposes
-
-    Parameters
-    ----------
-    words : iterable
-        Iterable of units like (word, frequency)
-
-    """
-
-    def __init__(self, words):
-        self.words = [word for word, freq in words]
-        self.freqs = [freq for word, freq in words]
-        self.by_length = defaultdict(list)
-        for id, word in enumerate(words):
-            self.by_length[len(word[0])].append(id)
-        self.graph = [
-            (a, b) for a in range(len(self.words))
-            for b in range(len(self.words)) if
-            editdist(*(self.words[i][0] for i in (a, b))) < 5 and
-            a != b
-        ]
-
-    def hasword(self, word):
-        assert isinstance(word, str)
-        return word in self.words
-
-    def wordfromid(self, id):
-        assert isinstance(id, int)
-        return self.words[id]
-
-    def freq(self, id):
-        assert isinstance(id, int)
-        count = self.freqs[id]
-        total = sum(self.freqs)
-        return count / total
-
-    def length_between(self, a, b):
-        """Return words with length between a and b inclusive"""
-        return [id for length in range(a, b+1) for id in
-                self.by_length[length]]
-
-    def len_startswith(self, a, b, prefix):
-        return [id for length in range(a, b+1) for id in self.by_length[length]
-                if self.words[id].startswith(prefix)]
-
-    def startswith(self, a):
-        return [id for id, word in enumerate(self.words) if word.startswith(a)]
-
-    def neighbors(self, word_id):
-        return [y for x, y in self.graph if x == word_id]
-
-    def add_word(self, word, freq):
-        total_freq = sum(self.freqs)
-        self.words.append(word)
-        self.freqs.append(freq * total_freq)
-        self.by_length[len(word)].append(word)
-        threshold = GRAPH_THRESHOLD
-        id = self.words.index(word)
-        for x in (id for id, word2 in enumerate(self.words)
-                  if editdist(word2, word, threshold) < threshold):
-            self.graph.append((id, x))
-
-    def add_freq(self, word, freq):
-        self.freqs[self.words.index(word)] += freq
-
-    def balance_freq(self):
-        raise NotImplementedError
 
 
 class Spell:
