@@ -70,7 +70,7 @@ def main(*args):
             host=args.db_host, user=args.db_user, db=args.db,
             passwd=args.db_passwd, charset='utf8') as cur:
         cur.executemany(' '.join((
-            'INSERT INTO graph (word1, word2)',
+            'INSERT IGNORE INTO graph (word1, word2)',
             'VALUES',
             '(%s, %s)')), graph_iter(args.graph))
 

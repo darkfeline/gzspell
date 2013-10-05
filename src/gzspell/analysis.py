@@ -12,7 +12,7 @@ import pymysql
 
 logger = logging.getLogger(__name__)
 
-GRAPH_THRESHOLD = 3
+GRAPH_THRESHOLD = 4
 INITIAL_FREQ = 0.01
 
 
@@ -115,13 +115,13 @@ class Database(BaseDatabase):
         raise NotImplementedError
 
 
-
 class Spell:
+
+    LOOKUP_THRESHOLD = 3
+    LENGTH_ERR = 2
 
     def __init__(self, db):
         self.db = db
-        self._length_err = 2
-        self._threshold = 10
 
     def check(self, word):
         if self.db.hasword(word):
@@ -130,29 +130,53 @@ class Spell:
             return 'ERROR'
 
     def correct(self, word):
+
         logger.debug('correct(%r)', word)
         assert isinstance(word, str)
+
+        # get initial candidates
         length = len(word)
-        # get candidates
-        id_candidates = self.db.len_startswith(
-            length - self._length_err, length + self._length_err, word[0])
-        if not id_candidates:
+        id_cands = self.db.len_startswith(
+            length - self.LENGTH_ERR, length + self.LENGTH_ERR, word[0])
+        if not id_cands:
             logger.debug('no candidates')
             return None
-        # get from graph
-        id_cand = random.choice(id_candidates)
-        dist = partial(self.dist, target=word)
-        while True:
-            id_neighbors = self.db.neighbors(id_cand)
-            if not id_neighbors:
-                logger.debug('no neighbors')
-                break
-            id_neighbors.sort(key=dist)
-            if dist(id_cand) <= dist(id_neighbors[0]):
-                break
-            else:
-                id_cand = id_neighbors[0]
-        return self.db.wordfromid(id_cand)
+
+        # select inital candidate
+        id_cand = random.choice(id_cands)
+        while editdist(id_cand, word) > self.LOOKUP_THRESHOLD:
+            id_cand = random.choice(id_cands)
+        id_cands = []
+        dist_cands = []
+        id_cands.append(id_cand)
+        dist_cands.append(editdist(id_cands))
+
+        # traverse graph
+        self._explore(word, id_cands, dist_cands, id_cand)
+        candidates = [id, self._cost(dist, id, word)
+                      for id, dist in zip(id_cands, dist_cands)]
+        id, cost = max(candidates, key=itemgetter(1))
+        return self.db.wordfromid(id)
+
+    def _explore(self, word, id_cands, dist_cands, id_node):
+        """
+        Args:
+            word: misspelled word
+            id_cands: candidate ids
+            dist_cand: candidate distance for misspelled word
+            id_node: current node
+
+        """
+        id_new = set()
+        for id_neighbor in self.db.neighbors(id_node):
+            if id_node not in id_cands:
+                dist = editdist(word, self.db.wordfromid(id_node))
+                if dist <= self.LOOKUP_THRESHOLD:
+                    id_cands.append(id_neighbor)
+                    dist_cands.append(dist)
+                    id_new.add(id_neighbor)
+        for id_node in id_new:
+            self._explore(word, id_cands, dist_cands, id_node)
 
     def process(self, word):
         if self.check(word) == 'OK':
@@ -173,21 +197,19 @@ class Spell:
         else:
             self.bump(word)
 
-    def dist(self, id_word, target):
+    def _cost(self, dist, id_word, target):
         """
-        Parameters
-        ----------
-        id_word : int
-            Correct word.
-        target : str
-            Wrong word.
+        Args:
+            dist: Distance between words
+            id_word: ID of word in graph
+            target: Misspelled word
+
+        >>> spell.cost(editdist(word, misspelled), word, misspelled)
 
         """
-        assert isinstance(id_word, int)
-        assert isinstance(target, str)
+        cost = dist
+        cost += abs(len(target) - len(word)) / 2
         word = self.db.wordfromid(id_word)
-        cost = editdist(word, target)
-        cost += abs(len(target) - len(word))
         if target[0] != word[0]:
             cost += 1
         cost *= self.db.freq(id_word)
@@ -276,59 +298,51 @@ costs.compute()
 
 
 @lru_cache(2048)
-def editdist(word, target, limit=None):
-    # table[target][word]
-    table = [
-        [None for x in range(len(word) + 1)] for y in range(len(target) + 1)
-    ]
-    table[0][0] = 0
+def editdist(a, b, limit=None):
     try:
-        return _editdist(word, target, limit, len(word), len(target), table)
+        return _editdist(a, b, limit)
     except LimitException:
         return float('+inf')
 
 
-def _editdist(word, target, limit, i_word, i_target, table):
+@lru_cache(2048)
+def _editdist(a, b, limit):
     """
     Parameters
     ----------
-    word : str
-        Word to calculate edit distance for
-    target : str
-        Target word to compare to
+    a : str
+        Word substring to calculate edit distance for
+    b : str
+        Word substring to calculate edit distance for
     limit : Number or None
         Cost limit before returning
-    i_word : int
-        Index for word substring slice, e.g. 3 for "apple" is slice
-        "app"
-    i_target : int
-        Index for target substring slice
-    table : list
-        Table for dynamic programming/cache
 
     """
     logger.debug(
-        '_editdist(%r, %r, %r, %r, table)', word, target, i_word, i_target)
-    assert isinstance(i_word, int)
-    assert isinstance(i_target, int)
+        '_editdist(%r, %r, %r)', a, b, limit)
     if i_word < 0 or i_target < 0:
         logger.debug('Got inf')
         return float('+inf')
-    if table[i_target][i_word] is None:
-        cost = min(
-            # insert in word
-            _editdist(word, target, limit, i_word, i_target - 1, table) + 1,
-            # delete in word
-            _editdist(word, target, limit, i_word - 1, i_target, table) + 1,
-            # replace, same
-            _editdist(word, target, limit, i_word - 1, i_target - 1, table) +
-            costs.repl_cost(word[i_word - 1], target[i_target - 1])
-        )
-        if limit is not None and cost >= limit:
-            raise LimitException
-        table[i_target][i_word] = cost
-    logger.debug('Got %r', table[i_target][i_word])
-    return table[i_target][i_word]
+    possible = []
+    # insert in a
+    try:
+        possible.append(_editdist(a, b[:-1], limit) + 1)
+    except IndexError:
+        possible.append(float("+inf"))
+    # delete in a
+    try:
+        possible.append(_editdist(a[:-1], b, limit) + 1)
+    except IndexError:
+        possible.append(float("+inf"))
+    # replace, same
+    try:
+        possible.append(
+            editdist(a[:-1], b[:-1], limit) +
+            costs.repl_cost(a[-1], b[-1]))
+    cost = min(possible)
+    if limit is not None and cost >= limit:
+        raise LimitException
+    return cost
 
 
 class LimitException(Exception):
