@@ -119,6 +119,7 @@ class Spell:
 
     LOOKUP_THRESHOLD = 3
     LENGTH_ERR = 2
+    INIT_LIMIT = 200
 
     def __init__(self, db):
         self.db = db
@@ -144,9 +145,14 @@ class Spell:
 
         # select inital candidate
         id_cand = random.choice(id_cands)
+        i = 0
         while (editdist(self.db.wordfromid(id_cand), word) >
                self.LOOKUP_THRESHOLD):
             id_cand = random.choice(id_cands)
+            i += 1
+            if i > self.INIT_LIMIT:
+                logger.debug('Candidate search limit hit')
+                return None
         id_cands = []
         dist_cands = []
         id_cands.append(id_cand)
