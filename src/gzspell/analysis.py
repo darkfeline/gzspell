@@ -173,11 +173,10 @@ class Spell:
         """
         id_new = set()
         for id_neighbor in self.db.neighbors(id_node):
-            logger.debug("Touching %r", id_node)
-            if id_node not in seen:
-                logger.debug("Visiting %r", id_node)
-                seen.add(id_node)
-                dist = editdist(word, self.db.wordfromid(id_node))
+            if id_neighbor not in seen:
+                logger.debug("Visiting %r", id_neighbor)
+                seen.add(id_neighbor)
+                dist = editdist(word, self.db.wordfromid(id_neighbor))
                 if dist <= self.LOOKUP_THRESHOLD:
                     id_cands.append(id_neighbor)
                     dist_cands.append(dist)
