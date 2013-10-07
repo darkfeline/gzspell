@@ -28,6 +28,13 @@ gzspell implements spell-checking and auto-correction functions and
 classes, as well as a server wrapping these functions with an API for
 frontends.
 
+Basic Setup
+===========
+
+* Load the database schema.
+* Populate tables with data (a few helper scripts are included.)
+* Start the server: ``gzserver --user user --passwd passwd``.
+
 Package Modules
 ===============
 
@@ -36,7 +43,8 @@ Package Modules
 trie.py
 -------
 
-Contains an implementation of the trie data type.
+Contains an implementation of the trie data type.  This is no longer
+used, a remnant of an earlier design.
 
 .. class:: Trie
 
@@ -112,20 +120,22 @@ The analysis module handles the actual spell-checking and correction.
 
 .. function:: editdist(word, target, limit=None)
 
-   Uses a dynamic programming approach to calculate the edit distance
-   between `word` and `target`.  `limit` sets a limit on the cost
-   after which computation terminates, returning infinity.
+   Calculate the edit distance between `word` and `target`.  `limit`
+   sets a limit on the cost after which computation terminates,
+   returning infinity.
 
-   This has an LRU cache of 2048.
+   This has an LRU cache of 2048, as does its recursive component, as
+   an easier replacement for dynamic programming.
 
-.. class:: BaseDatabase
+.. class:: Database
 
-   Abstract base class describing the database interface used by
-   :class:`Spell`.
+   A MySQL/RDB implementation of a theoretical Database interface.
+   Used to use a trire for membership testing.
 
-   A database should have a map between ids and words and a graph of
-   similar words, mapping ids to ids.  It should also implement the
-   following methods:
+   The Database constructor takes the same arguments as pymysql's
+   connect().
+
+   Database is probably thread-safe.
 
    .. method:: hasword(word)
 
@@ -172,29 +182,6 @@ The analysis module handles the actual spell-checking and correction.
 
       Balance frequencies in the database.
 
-.. class:: Database(*args, **kwargs)
-
-   A MySQL/RDB implementation of BaseDatabase, coupled with a trie for
-   membership testing (probably unneeded and slower than just a SQL
-   query; oh well).  The actual implementation.
-
-   The Database constructor takes the same arguments as pymysql's
-   connect().
-
-   Database is probably thread-safe.  If the trie is removed, then
-   Database will be definitely probably thread-safe, since it is only
-   running on MySQL.
-
-.. class:: SimpleDatabase(words)
-
-   Simple, unoptimized implementation of BaseDatabase with native Python
-   types.  Useful for testing (unit tests) and small scale applciations.
-
-   `words` is an iterable of tuples like (word, frequency) of words to
-   add to the database.
-
-   SimpleDatabase might be thread-safe.  Flip a coin.
-
 .. class:: Spell(db)
 
    Class that implements the spell-checking and correction
@@ -228,15 +215,23 @@ The analysis module handles the actual spell-checking and correction.
 
       Add the word, and update if it already exists.
 
-   .. method:: dist(id_word, target)
-
-      Calculate the overall distance from the word with the given id and
-      the target (misspelled) word.
-
 Scripts
 =======
 
 The gzspell package includes the following scripts:
+
+gzserver
+
+    The server script.  See the file or ``gzserver -h`` for usage instructions.
+
+gzcli
+
+    A CLI script.  See the file or ``gzserver -h`` for usage instructions.
+
+gzshell
+
+    A shell interface script.  See the file or ``gzserver -h`` for
+    usage instructions.  Commands are the same as the server API.
 
 make_graph
 
@@ -252,11 +247,6 @@ make_graph
 import_database
 
     Load lexicon and graph data files into a MySQL database.
-
-dumbserver
-
-    gzspell server using a static SimpleDatabase backend.  For testing
-    purposes.
 
 Unit Tests
 ==========
@@ -320,6 +310,8 @@ words has the following columns:
 Most are self-explanatory.  ``frequency`` is a misnomer; it contains a
 count and is averaged over the table sum for the actual frequency.
 ``frequency`` is balanced periodically, so it can be a float.
+
+.. note:: Frequency balancing is not implemented yet.
 
 graph contains two columns:
 
