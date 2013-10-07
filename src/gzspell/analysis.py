@@ -218,7 +218,7 @@ class Spell:
         cost += abs(len(target) - len(word)) / 2
         if target[0] != word[0]:
             cost += 1
-        cost *= self.db.freq(id_word)
+        cost *= (1 - self.db.freq(id_word))
         return cost
 
 
