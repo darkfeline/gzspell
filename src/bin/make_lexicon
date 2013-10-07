@@ -40,12 +40,13 @@ def main(*args):
     with open(args.outfile, 'w') as f:
         ids = count(1)
         for word in words:
-            f.write(json.dumps({
-                'id': next(ids),
-                'word': word,
-                'frequency': words[word],
-                'length': len(word)
-            }) + '\n')
+            if words[word] > 0:
+                f.write(json.dumps({
+                    'id': next(ids),
+                    'word': word,
+                    'frequency': words[word],
+                    'length': len(word)
+                }) + '\n')
 
 if __name__ == '__main__':
     main(*sys.argv[1:])
