@@ -5,10 +5,14 @@ Developer Guide for gzspell
 gzspell is a Python package/library for spell-checking and
 auto-correction.
 
+There is no user guide because this is the backend; the expected "end
+user" is the developer.
+
 .. note::
 
    Build this document with Sphinx if you want pretty formatting and
-   links and such.  (This document is in reST format, in case you didn't know.)
+   links and such.  (This document is in reST format, in case you
+   didn't know.)
 
 Dependencies
 ============
@@ -18,8 +22,10 @@ Dependencies
 - nose for unit tests
 
 .. note::
-   The public stable release of pymysql contains a fatal bug.  A patched
-   version of the package is included in the ``dependencies`` directory.
+
+   The public stable release of pymysql contains a fatal bug.  A
+   patched version of the package is included in the ``dependencies``
+   directory.
 
 Overview
 ========
@@ -34,6 +40,18 @@ Basic Setup
 * Load the database schema.
 * Populate tables with data (a few helper scripts are included.)
 * Start the server: ``gzserver --user user --passwd passwd``.
+
+Vocabulary Domain
+=================
+
+gzspell can handle all lowercase letters, single quotes and dashes.
+There is no reason why it cannot be expanded to handle every
+character, but it is currently not implemented to do so.
+
+The relevant changes needed to widen the vocabulary mainly surrounds
+expanding the Costs keyboard map for edit distance character
+replacement costs and removing ``str.lower()`` calls scattered
+throughout the code base.
 
 Package Modules
 ===============
