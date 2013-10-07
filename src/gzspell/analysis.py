@@ -156,7 +156,7 @@ class Spell:
             while (editdist(
                     self.db.wordfromid(id_cand), word, self.LOOKUP_THRESHOLD) >
                    self.LOOKUP_THRESHOLD):
-                id_cand = random.choice(id_cands)
+                id_cand = random.choice(id_init_cands)
                 init_tries += 1
                 if init_tries > self.INIT_LIMIT:
                     logger.debug('Candidate search limit hit')
