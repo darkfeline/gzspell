@@ -320,9 +320,6 @@ def _editdist(a, b, limit):
     """
     logger.debug(
         '_editdist(%r, %r, %r)', a, b, limit)
-    if i_word < 0 or i_target < 0:
-        logger.debug('Got inf')
-        return float('+inf')
     possible = [float('+inf')]
     # insert in a
     try:
