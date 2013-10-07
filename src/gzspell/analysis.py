@@ -150,7 +150,7 @@ class Spell:
         tries = 0
         while tries < self.MAX_TRIES and len(id_cands) < 10:
             tries += 1
-            self._try_candidate(id_init_cands, id_cands, dist_cands, seen)
+            self._try_candidate(word, id_init_cands, id_cands, dist_cands, seen)
         if not id_cands:
             return None
         candidates = [(id, self._cost(dist, id, word))
@@ -159,7 +159,7 @@ class Spell:
         id, cost = min(candidates, key=itemgetter(1))
         return self.db.wordfromid(id)
 
-    def _try_candidate(self, id_init_cands, id_cands, dist_cands, seen):
+    def _try_candidate(self, word, id_init_cands, id_cands, dist_cands, seen):
 
         init_tries = 0
         # select inital candidate
