@@ -117,7 +117,7 @@ class Database:
 
 class Spell:
 
-    LOOKUP_THRESHOLD = 2
+    LOOKUP_THRESHOLD = 3
     LENGTH_ERR = 2
     INIT_LIMIT = 200
     MAX_TRIES = 10
@@ -150,7 +150,8 @@ class Spell:
         tries = 0
         while tries < self.MAX_TRIES and len(id_cands) < 10:
             tries += 1
-            self._try_candidate(word, id_init_cands, id_cands, dist_cands, seen)
+            self._try_candidate(
+                word, id_init_cands, id_cands, dist_cands, seen)
         if not id_cands:
             return None
         candidates = [(id, self._cost(dist, id, word))
