@@ -117,9 +117,10 @@ class Database:
 
 class Spell:
 
-    LOOKUP_THRESHOLD = 3
+    LOOKUP_THRESHOLD = 2
     LENGTH_ERR = 2
-    INIT_LIMIT = 200
+    INIT_LIMIT = 100
+    MAX_TRIES = 5
 
     def __init__(self, db):
         self.db = db
@@ -143,24 +144,30 @@ class Spell:
             logger.debug('no candidates')
             return None
 
-        # select inital candidate
-        id_cand = random.choice(id_cands)
-        i = 0
-        while (editdist(self.db.wordfromid(id_cand), word) >
-               self.LOOKUP_THRESHOLD):
-            id_cand = random.choice(id_cands)
-            i += 1
-            if i > self.INIT_LIMIT:
-                logger.debug('Candidate search limit hit')
-                return None
         id_cands = []
         dist_cands = []
-        id_cands.append(id_cand)
-        dist_cands.append(self._cost(
-            editdist(self.db.wordfromid(id_cand), word), id_cand, word))
+        seen = set()
+        init_tries = 0
+        tries = 0
+        while tries < self.MAX_TRIES and len(id_cands) < 10:
 
-        # traverse graph
-        self._explore(word, set(id_cands), id_cands, dist_cands, id_cand)
+            # select inital candidate
+            id_cand = random.choice(id_cands)
+            while (editdist(self.db.wordfromid(id_cand), word) >
+                   self.LOOKUP_THRESHOLD):
+                id_cand = random.choice(id_cands)
+                init_tries += 1
+                if init_tries > self.INIT_LIMIT:
+                    logger.debug('Candidate search limit hit')
+                    return None
+            id_cands.append(id_cand)
+            dist_cands.append(self._cost(
+                editdist(self.db.wordfromid(id_cand), word), id_cand, word))
+            seen.add(id_cand)
+
+            # traverse graph
+            self._explore(word, seen, id_cands, dist_cands, id_cand)
+
         candidates = [(id, self._cost(dist, id, word))
                       for id, dist in zip(id_cands, dist_cands)]
         logger.debug('Candidates: %r', candidates)
@@ -312,7 +319,7 @@ costs = Costs()
 costs.compute()
 
 
-@lru_cache(2048)
+@lru_cache(4096)
 def editdist(a, b, limit=None):
     try:
         return _r_editdist(a, b, limit)
@@ -320,7 +327,7 @@ def editdist(a, b, limit=None):
         return float('+inf')
 
 
-@lru_cache(2048)
+@lru_cache(4096)
 def _r_editdist(a, b, limit):
     """
     Parameters
