@@ -150,20 +150,22 @@ class Spell:
         id_cands = []
         dist_cands = []
         id_cands.append(id_cand)
-        dist_cands.append(editdist(self.db.wordfromid(id_cand), word))
+        dist_cands.append(self._cost(
+            editdist(self.db.wordfromid(id_cand), word), id_cand, word))
 
         # traverse graph
-        self._explore(word, id_cands, dist_cands, id_cand)
+        self._explore(word, set(id_cands), id_cands, dist_cands, id_cand)
         candidates = [(id, self._cost(dist, id, word))
                       for id, dist in zip(id_cands, dist_cands)]
         logger.debug('Candidates: %r', candidates)
         id, cost = min(candidates, key=itemgetter(1))
         return self.db.wordfromid(id)
 
-    def _explore(self, word, id_cands, dist_cands, id_node):
+    def _explore(self, word, seen, id_cands, dist_cands, id_node):
         """
         Args:
             word: misspelled word
+            seen: set of seen candidate ids
             id_cands: candidate ids
             dist_cand: candidate distance for misspelled word
             id_node: current node
@@ -171,14 +173,16 @@ class Spell:
         """
         id_new = set()
         for id_neighbor in self.db.neighbors(id_node):
-            if id_node not in id_cands:
+            if id_node not in seen:
+                logger.debug("Visiting %r", id_node)
+                seen.add(id_node)
                 dist = editdist(word, self.db.wordfromid(id_node))
                 if dist <= self.LOOKUP_THRESHOLD:
                     id_cands.append(id_neighbor)
                     dist_cands.append(dist)
                     id_new.add(id_neighbor)
         for id_node in id_new:
-            self._explore(word, id_cands, dist_cands, id_node)
+            self._explore(word, seen, id_cands, dist_cands, id_node)
 
     def process(self, word):
         if self.check(word) == 'OK':
