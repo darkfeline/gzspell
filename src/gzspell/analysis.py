@@ -147,10 +147,11 @@ class Spell:
         id_cands = []
         dist_cands = []
         seen = set()
-        init_tries = 0
         tries = 0
         while tries < self.MAX_TRIES and len(id_cands) < 10:
 
+            tries += 1
+            init_tries = 0
             # select inital candidate
             id_cand = random.choice(id_init_cands)
             while (editdist(
