@@ -138,9 +138,9 @@ class Spell:
 
         # get initial candidates
         length = len(word)
-        id_cands = self.db.len_startswith(
+        id_init_cands = self.db.len_startswith(
             length - self.LENGTH_ERR, length + self.LENGTH_ERR, word[0])
-        if not id_cands:
+        if not id_init_cands:
             logger.debug('no candidates')
             return None
 
@@ -152,7 +152,7 @@ class Spell:
         while tries < self.MAX_TRIES and len(id_cands) < 10:
 
             # select inital candidate
-            id_cand = random.choice(id_cands)
+            id_cand = random.choice(id_init_cands)
             while (editdist(
                     self.db.wordfromid(id_cand), word, self.LOOKUP_THRESHOLD) >
                    self.LOOKUP_THRESHOLD):
