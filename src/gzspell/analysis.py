@@ -156,6 +156,7 @@ class Spell:
         self._explore(word, id_cands, dist_cands, id_cand)
         candidates = [(id, self._cost(dist, id, word))
                       for id, dist in zip(id_cands, dist_cands)]
+        logger.debug('Candidates: %r', candidates)
         id, cost = min(candidates, key=itemgetter(1))
         return self.db.wordfromid(id)
 
