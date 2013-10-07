@@ -289,7 +289,10 @@ class Costs:
         logger.debug('repl_cost(%r, %r)', a, b)
         assert isinstance(a, str) and len(a) == 1
         assert isinstance(b, str) and len(b) == 1
-        cost = self.get(a, b)
+        try:
+            cost = self.get(a, b)
+        except ValueError:  # not in costs table
+            return 5
         assert cost is not None
         return cost
 
