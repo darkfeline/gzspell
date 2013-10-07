@@ -119,8 +119,8 @@ class Spell:
 
     LOOKUP_THRESHOLD = 2
     LENGTH_ERR = 2
-    INIT_LIMIT = 100
-    MAX_TRIES = 5
+    INIT_LIMIT = 200
+    MAX_TRIES = 10
 
     def __init__(self, db):
         self.db = db
