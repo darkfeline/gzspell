@@ -153,7 +153,7 @@ class Spell:
 
         # traverse graph
         self._explore(word, id_cands, dist_cands, id_cand)
-        candidates = [id, self._cost(dist, id, word)
+        candidates = [(id, self._cost(dist, id, word))
                       for id, dist in zip(id_cands, dist_cands)]
         id, cost = max(candidates, key=itemgetter(1))
         return self.db.wordfromid(id)
