@@ -173,6 +173,7 @@ class Spell:
         """
         id_new = set()
         for id_neighbor in self.db.neighbors(id_node):
+                logger.debug("Touching %r", id_node)
             if id_node not in seen:
                 logger.debug("Visiting %r", id_node)
                 seen.add(id_node)
