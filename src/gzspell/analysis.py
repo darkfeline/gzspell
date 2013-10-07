@@ -150,13 +150,13 @@ class Spell:
         id_cands = []
         dist_cands = []
         id_cands.append(id_cand)
-        dist_cands.append(editdist(id_cands))
+        dist_cands.append(editdist(self.db.wordfromid(id_cand), word))
 
         # traverse graph
         self._explore(word, id_cands, dist_cands, id_cand)
         candidates = [(id, self._cost(dist, id, word))
                       for id, dist in zip(id_cands, dist_cands)]
-        id, cost = max(candidates, key=itemgetter(1))
+        id, cost = min(candidates, key=itemgetter(1))
         return self.db.wordfromid(id)
 
     def _explore(self, word, id_cands, dist_cands, id_node):
