@@ -160,7 +160,7 @@ class Spell:
                 init_tries += 1
                 if init_tries > self.INIT_LIMIT:
                     logger.debug('Candidate search limit hit')
-                    return None
+                    continue
             id_cands.append(id_cand)
             dist_cands.append(self._cost(
                 editdist(self.db.wordfromid(id_cand), word), id_cand, word))
@@ -169,6 +169,8 @@ class Spell:
             # traverse graph
             self._explore(word, seen, id_cands, dist_cands, id_cand)
 
+        if not id_cands:
+            return None
         candidates = [(id, self._cost(dist, id, word))
                       for id, dist in zip(id_cands, dist_cands)]
         logger.debug('Candidates: %r', candidates)
