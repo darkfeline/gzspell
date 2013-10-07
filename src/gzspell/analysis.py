@@ -16,7 +16,7 @@ GRAPH_THRESHOLD = 4
 INITIAL_FREQ = 0.01
 
 
-class Database(BaseDatabase):
+class Database:
 
     def __init__(self, *args, **kwargs):
         self._args = args
