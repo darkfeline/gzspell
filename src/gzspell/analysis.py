@@ -300,13 +300,13 @@ costs.compute()
 @lru_cache(2048)
 def editdist(a, b, limit=None):
     try:
-        return _editdist(a, b, limit)
+        return _r_editdist(a, b, limit)
     except LimitException:
         return float('+inf')
 
 
 @lru_cache(2048)
-def _editdist(a, b, limit):
+def _r_editdist(a, b, limit):
     """
     Parameters
     ----------
@@ -319,32 +319,25 @@ def _editdist(a, b, limit):
 
     """
     logger.debug(
-        '_editdist(%r, %r, %r)', a, b, limit)
+        '_r_editdist(%r, %r, %r)', a, b, limit)
     possible = [float('+inf')]
+    # base case
+    if not a and not b:
+        return 0
     # insert in a
-    try:
-        possible.append(_editdist(a, b[:-1], limit) + 1)
-    except IndexError:
-        pass
+    if len(b) >= 1:
+        possible.append(_r_editdist(a, b[:-1], limit) + 1)
     # delete in a
-    try:
-        possible.append(_editdist(a[:-1], b, limit) + 1)
-    except IndexError:
-        pass
+    if len(a) >= 1:
+        possible.append(_r_editdist(a[:-1], b, limit) + 1)
     # replace or same
-    try:
+    if len(a) >= 1 and len(b) >= 1:
         possible.append(
-            editdist(a[:-1], b[:-1], limit) +
+            _r_editdist(a[:-1], b[:-1], limit) +
             costs.repl_cost(a[-1], b[-1]))
-    except IndexError:
-        pass
     # transposition
-    try:
-        if a[-1] == b[-2] and a[-2] == b[-1]:
-            possible.append(
-                editdist(a[:-2], b[:-2], limit) + 1)
-    except IndexError:
-        pass
+    if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
+        possible.append(_r_editdist(a[:-2], b[:-2], limit) + 1)
     cost = min(possible)
     if limit is not None and cost >= limit:
         raise LimitException
