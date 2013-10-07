@@ -144,7 +144,8 @@ class Spell:
 
         # select inital candidate
         id_cand = random.choice(id_cands)
-        while editdist(id_cand, word) > self.LOOKUP_THRESHOLD:
+        while (editdist(self.db.wordfromid(id_cand), word) >
+               self.LOOKUP_THRESHOLD):
             id_cand = random.choice(id_cands)
         id_cands = []
         dist_cands = []
