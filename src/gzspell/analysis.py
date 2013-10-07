@@ -149,27 +149,8 @@ class Spell:
         seen = set()
         tries = 0
         while tries < self.MAX_TRIES and len(id_cands) < 10:
-
             tries += 1
-            init_tries = 0
-            # select inital candidate
-            id_cand = random.choice(id_init_cands)
-            while (editdist(
-                    self.db.wordfromid(id_cand), word, self.LOOKUP_THRESHOLD) >
-                   self.LOOKUP_THRESHOLD):
-                id_cand = random.choice(id_init_cands)
-                init_tries += 1
-                if init_tries > self.INIT_LIMIT:
-                    logger.debug('Candidate search limit hit')
-                    continue
-            id_cands.append(id_cand)
-            dist_cands.append(self._cost(
-                editdist(self.db.wordfromid(id_cand), word), id_cand, word))
-            seen.add(id_cand)
-
-            # traverse graph
-            self._explore(word, seen, id_cands, dist_cands, id_cand)
-
+            self._try_candidate(id_init_cands, id_cands, dist_cands, seen)
         if not id_cands:
             return None
         candidates = [(id, self._cost(dist, id, word))
@@ -177,6 +158,27 @@ class Spell:
         logger.debug('Candidates: %r', candidates)
         id, cost = min(candidates, key=itemgetter(1))
         return self.db.wordfromid(id)
+
+    def _try_candidate(self, id_init_cands, id_cands, dist_cands, seen):
+
+        init_tries = 0
+        # select inital candidate
+        id_cand = random.choice(id_init_cands)
+        while (editdist(
+                self.db.wordfromid(id_cand), word, self.LOOKUP_THRESHOLD) >
+               self.LOOKUP_THRESHOLD):
+            id_cand = random.choice(id_init_cands)
+            init_tries += 1
+            if init_tries > self.INIT_LIMIT:
+                logger.debug('Candidate search limit hit')
+                return
+        id_cands.append(id_cand)
+        dist_cands.append(self._cost(
+            editdist(self.db.wordfromid(id_cand), word), id_cand, word))
+        seen.add(id_cand)
+
+        # traverse graph
+        self._explore(word, seen, id_cands, dist_cands, id_cand)
 
     def _explore(self, word, seen, id_cands, dist_cands, id_node):
         """
