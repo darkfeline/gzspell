@@ -12,6 +12,6 @@ setup(
     packages=['gzspell'],
     scripts=['src/bin/' + x for x in [
         'gzserver', 'gzcli', 'gzshell',
-        'make_graph', 'import_lexicon', 'dumbserver', 'add_corpus',
+        'make_graph', 'make_lexicon', 'import_lexicon', 'add_corpus',
         ]],
 )
