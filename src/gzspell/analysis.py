@@ -323,22 +323,31 @@ def _editdist(a, b, limit):
     if i_word < 0 or i_target < 0:
         logger.debug('Got inf')
         return float('+inf')
-    possible = []
+    possible = [float('+inf')]
     # insert in a
     try:
         possible.append(_editdist(a, b[:-1], limit) + 1)
     except IndexError:
-        possible.append(float("+inf"))
+        pass
     # delete in a
     try:
         possible.append(_editdist(a[:-1], b, limit) + 1)
     except IndexError:
-        possible.append(float("+inf"))
-    # replace, same
+        pass
+    # replace or same
     try:
         possible.append(
             editdist(a[:-1], b[:-1], limit) +
             costs.repl_cost(a[-1], b[-1]))
+    except IndexError:
+        pass
+    # transposition
+    try:
+        if a[-1] == b[-2] and a[-2] == b[-1]:
+            possible.append(
+                editdist(a[:-2], b[:-2], limit) + 1)
+    except IndexError:
+        pass
     cost = min(possible)
     if limit is not None and cost >= limit:
         raise LimitException
