@@ -10,16 +10,16 @@ lexicon.dat
 
 ::
 
-    {"id": 0, "word": "apple", "frequency": 0.5, "length": 5}
-    {"id": 1, "word": "banana", "frequency": 0.5, "length": 6}
+    {"id": 1, "word": "apple", "frequency": 0.5, "length": 5}
+    {"id": 2, "word": "banana", "frequency": 0.5, "length": 6}
 
 graph.dat
 ---------
 
 ::
 
-    [0, 1]
-    [1, 0]
+    [1, 2]
+    [2, 1]
 
 """
 

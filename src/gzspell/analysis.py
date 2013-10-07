@@ -323,6 +323,8 @@ def _r_editdist(a, b, limit):
     """
     logger.debug(
         '_r_editdist(%r, %r, %r)', a, b, limit)
+    assert isinstance(a, str)
+    assert isinstance(b, str)
     possible = [float('+inf')]
     # base case
     if not a and not b:
