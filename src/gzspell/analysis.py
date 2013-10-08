@@ -34,11 +34,6 @@ class Database:
             else:
                 return False
 
-    def wordfromid(self, id):
-        with self._connect() as cur:
-            cur.execute('SELECT word FROM words WHERE id=%s', id)
-            return cur.fetchone()[0].decode('utf8')
-
     def freq(self, id):
         with self._connect() as cur:
             cur.execute('SELECT frequency FROM words WHERE id=%s', id)
@@ -49,32 +44,20 @@ class Database:
             assert isinstance(total, Number)
             return count / total
 
-    def length_between(self, a, b):
-        with self._connect() as cur:
-            cur.execute(
-                'SELECT id FROM words WHERE length BETWEEN %s AND %s',
-                (a, b))
-            return [x[0] for x in cur.fetchall()]
-
     def len_startswith(self, a, b, prefix):
         with self._connect() as cur:
             cur.execute(' '.join((
-                'SELECT id FROM words WHERE length BETWEEN %s AND %s',
+                'SELECT id, word FROM words WHERE length BETWEEN %s AND %s',
                 'AND word LIKE %s')), (a, b, prefix + '%'))
-            return [x[0] for x in cur.fetchall()]
-
-    def startswith(self, a):
-        with self._connect() as cur:
-            cur.execute(
-                'SELECT id FROM words WHERE word LIKE %s', a + '%')
-            return [x[0] for x in cur.fetchall()]
+            return [(x[0], x[1].decode('utf8') for x in cur.fetchall()]
 
     def neighbors(self, word_id):
         with self._connect() as cur:
-            cur.execute(
-                'SELECT word2 FROM graph WHERE word1=%s',
-                word_id)
-            return [x[0] for x in cur.fetchall()]
+            cur.execute(' '.join((
+                'SELECT word2, word FROM graph',
+                'LEFT JOIN words ON graph.word2=words.id WHERE word1=%s',
+            ), word_id)
+            return [(x[0], x[1].decode('utf8') for x in cur.fetchall()]
 
     def add_word(self, word, freq):
         logger.debug('add_word(%r, %r)', word, freq)
@@ -138,71 +121,63 @@ class Spell:
 
         # get initial candidates
         length = len(word)
-        id_init_cands = self.db.len_startswith(
+        init_cands = self.db.len_startswith(
             length - self.LENGTH_ERR, length + self.LENGTH_ERR, word[0])
         if not id_init_cands:
             logger.debug('no candidates')
             return None
 
-        id_cands = []
-        dist_cands = []
+        cands
         seen = set()
         tries = 0
         while tries < self.MAX_TRIES and len(id_cands) < 10:
             tries += 1
-            self._try_candidate(
-                word, id_init_cands, id_cands, dist_cands, seen)
+            self._try_candidate(word, init_cands, cands, seen)
         if not id_cands:
             return None
-        candidates = [(id, self._cost(dist, id, word))
-                      for id, dist in zip(id_cands, dist_cands)]
+        candidates = [(id, cand_word, self._cost(dist, id, cand_word, word))
+                      for id, word_cand, dist in cands]
         logger.debug('Candidates: %r', candidates)
-        id, cost = min(candidates, key=itemgetter(1))
-        return self.db.wordfromid(id)
+        id, word, cost = min(candidates, key=itemgetter(2))
+        return word
 
-    def _try_candidate(self, word, id_init_cands, id_cands, dist_cands, seen):
+    def _try_candidate(self, word, init_cands, cands, seen):
 
         init_tries = 0
         # select inital candidate
-        id_cand = random.choice(id_init_cands)
-        while (editdist(
-                self.db.wordfromid(id_cand), word) >
-               self.LOOKUP_THRESHOLD):
-            id_cand = random.choice(id_init_cands)
+        id_cand, word_cand = random.choice(init_cands)
+        while editdist(word_cand, word) > self.LOOKUP_THRESHOLD:
+            id_cand, word_cand = random.choice(init_cands)
             init_tries += 1
             if init_tries > self.INIT_LIMIT:
                 logger.debug('Candidate search limit hit')
                 return
-        id_cands.append(id_cand)
-        dist_cands.append(self._cost(
-            editdist(self.db.wordfromid(id_cand), word), id_cand, word))
+        cands.append((id_cand, word_cand, editdist(word_cand, word)))
         seen.add(id_cand)
 
         # traverse graph
-        self._explore(word, seen, id_cands, dist_cands, id_cand)
+        self._explore(word, seen, cands, id_cand)
 
-    def _explore(self, word, seen, id_cands, dist_cands, id_node):
+    def _explore(self, word, seen, cands, id_node):
         """
         Args:
             word: misspelled word
             seen: set of seen candidate ids
-            id_cands: candidate ids
-            dist_cand: candidate distance for misspelled word
+            cands: candidates
             id_node: current node
 
         """
         id_new = set()
-        for id_neighbor in self.db.neighbors(id_node):
+        for id_neighbor, word_neighbor in self.db.neighbors(id_node):
             if id_neighbor not in seen:
                 logger.debug("Visiting %r", id_neighbor)
                 seen.add(id_neighbor)
-                dist = editdist(word, self.db.wordfromid(id_neighbor))
+                    dist = editdist(word, word_neighbor)
                 if dist <= self.LOOKUP_THRESHOLD:
-                    id_cands.append(id_neighbor)
-                    dist_cands.append(dist)
+                    cands.append((id_neighbor, word_neighbor, dist))
                     id_new.add(id_neighbor)
         for id_node in id_new:
-            self._explore(word, seen, id_cands, dist_cands, id_node)
+            self._explore(word, seen, cands, id_node)
 
     def process(self, word):
         if self.check(word) == 'OK':
@@ -223,18 +198,18 @@ class Spell:
         else:
             self.bump(word)
 
-    def _cost(self, dist, id_word, target):
+    def _cost(self, dist, id_word, word, target):
         """
         Args:
             dist: Distance between words
             id_word: ID of word in graph
+            word: word in graph
             target: Misspelled word
 
         >>> spell.cost(editdist(word, misspelled), word, misspelled)
 
         """
         cost = dist
-        word = self.db.wordfromid(id_word)
         cost += abs(len(target) - len(word)) / 2
         if target[0] != word[0]:
             cost += 1
