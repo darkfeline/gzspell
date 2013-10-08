@@ -127,7 +127,7 @@ class Spell:
             logger.debug('no candidates')
             return None
 
-        cands
+        cands = []
         seen = set()
         tries = 0
         while tries < self.MAX_TRIES and len(id_cands) < 10:
