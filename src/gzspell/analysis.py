@@ -123,7 +123,7 @@ class Spell:
         length = len(word)
         init_cands = self.db.len_startswith(
             length - self.LENGTH_ERR, length + self.LENGTH_ERR, word[0])
-        if not id_init_cands:
+        if not init_cands:
             logger.debug('no candidates')
             return None
 
