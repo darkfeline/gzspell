@@ -349,23 +349,23 @@ def _r_editdist(a, b):
     """
     assert isinstance(a, str)
     assert isinstance(b, str)
-    possible = [float('+inf')]
     # base case
     if not a and not b:
         return 0
+    possible = [float('+inf')]
     # insert in a
     if len(b) >= 1:
-        possible.append(_r_editdist(a, b[:-1], limit) + 1)
+        possible.append(_r_editdist(a, b[:-1]) + 1)
     # delete in a
     if len(a) >= 1:
-        possible.append(_r_editdist(a[:-1], b, limit) + 1)
+        possible.append(_r_editdist(a[:-1], b) + 1)
     # replace or same
     if len(a) >= 1 and len(b) >= 1:
         possible.append(
-            _r_editdist(a[:-1], b[:-1], limit) +
+            _r_editdist(a[:-1], b[:-1]) +
             costs.repl_cost(a[-1], b[-1]))
     # transposition
     if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
-        possible.append(_r_editdist(a[:-2], b[:-2], limit) + 1)
+        possible.append(_r_editdist(a[:-2], b[:-2]) + 1)
     cost = min(possible)
     return cost
