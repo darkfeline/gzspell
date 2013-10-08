@@ -370,7 +370,7 @@ def _r_editdist(a, b, limit):
     if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
         possible.append(_r_editdist(a[:-2], b[:-2], limit) + 1)
     cost = min(possible)
-    if limit is not None and cost >= limit:
+    if limit is not None and cost > limit:
         raise LimitException
     return cost
 
