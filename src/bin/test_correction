@@ -40,7 +40,7 @@ def main(*args):
                 if spell.check(right) != 'OK':
                     dont_have += 1
                     print("{} not in lexicon".format(right))
-                result = spell.correct( )
+                result = spell.correct(wrong)
                 print("{} corrected to {} (should be {})".format(
                     wrong, result, right))
                 if result == right:
