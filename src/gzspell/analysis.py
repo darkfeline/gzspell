@@ -135,7 +135,7 @@ class Spell:
             self._try_candidate(word, init_cands, cands, seen)
         if not cands:
             return None
-        candidates = [(id, cand_word, self._cost(dist, id, cand_word, word))
+        candidates = [(id, word_cand, self._cost(dist, id, word_cand, word))
                       for id, word_cand, dist in cands]
         logger.debug('Candidates: %r', candidates)
         id, word, cost = min(candidates, key=itemgetter(2))
