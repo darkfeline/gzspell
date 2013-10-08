@@ -133,7 +133,7 @@ class Spell:
         while tries < self.MAX_TRIES and len(cands) < 10:
             tries += 1
             self._try_candidate(word, init_cands, cands, seen)
-        if not id_cands:
+        if not cands:
             return None
         candidates = [(id, cand_word, self._cost(dist, id, cand_word, word))
                       for id, word_cand, dist in cands]
