@@ -172,7 +172,7 @@ class Spell:
             if id_neighbor not in seen:
                 logger.debug("Visiting %r", id_neighbor)
                 seen.add(id_neighbor)
-                    dist = editdist(word, word_neighbor)
+                dist = editdist(word, word_neighbor)
                 if dist <= self.LOOKUP_THRESHOLD:
                     cands.append((id_neighbor, word_neighbor, dist))
                     id_new.add(id_neighbor)
