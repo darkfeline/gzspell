@@ -130,7 +130,7 @@ class Spell:
         cands = []
         seen = set()
         tries = 0
-        while tries < self.MAX_TRIES and len(id_cands) < 10:
+        while tries < self.MAX_TRIES and len(cands) < 10:
             tries += 1
             self._try_candidate(word, init_cands, cands, seen)
         if not id_cands:
