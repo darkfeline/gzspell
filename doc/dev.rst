@@ -24,7 +24,7 @@ Dependencies
 .. note::
 
    The public stable release of pymysql contains a fatal bug.  A
-   patched version of the package is included in the ``dependencies``
+   patched version of the package is included in the ``files``
    directory.
 
 Overview
@@ -41,12 +41,29 @@ Basic Setup
 * Populate tables with data (a few helper scripts are included.)
 * Start the server: ``gzserver --user user --passwd passwd``.
 
+Example
+-------
+
+::
+
+   $ python setup.py install
+   $ mysql -u group0 -p < files/lexicon.sql
+   $ make_lexicon lexicon.dat wordlist corpus1 corpus2
+   $ make_graph lexicon.dat graph.dat
+   $ import_lexicon --db-user group0 --db-passwd passwd lexicon.dat graph.dat
+   # Start server
+   $ gzserver --user group0 --passwd passwd
+   # Start shell interface
+   $ gzshell --user group0 --passwd passwd
+   # Run one command
+   $ gzcli --user group0 --passwd passwd process appler
+
 Vocabulary Domain
 =================
 
 gzspell can handle all lowercase letters, single quotes and dashes.
 There is no reason why it cannot be expanded to handle every
-character, but it is currently not implemented to do so.
+character, but it is currently not implemented to do so efficiently.
 
 The relevant changes needed to widen the vocabulary mainly surrounds
 expanding the Costs keyboard map for edit distance character
@@ -148,7 +165,7 @@ The analysis module handles the actual spell-checking and correction.
 .. class:: Database
 
    A MySQL/RDB implementation of a theoretical Database interface.
-   Used to use a trire for membership testing.
+   Used to use a trie for membership testing.
 
    The Database constructor takes the same arguments as pymysql's
    connect().
@@ -159,32 +176,22 @@ The analysis module handles the actual spell-checking and correction.
 
       Check if the word exists.
 
-   .. method:: wordfromid(id)
-
-      Return the word with the given id.
-
    .. method:: freq(id)
 
       Return the frequency of the word with the given id.
 
-   .. method:: length_between(a, b)
-
-      Return the ids of words with length between `a` and `b`.
-
    .. method:: len_startswith(a, b, prefix)
 
-      Return the ids of the word with the given id with length
+      Return the words with the given id with length
       between `a` and `b` and beginning with the given prefix.
 
-   .. method:: startswith(prefix)
-
-      Return the ids of the word with the given id beginning with the
-      given prefix.
+      Return a list of tuples: (id, word).
 
    .. method:: neighbors(word_id)
 
-      Return the ids of all of the neighbors of the word with the
-      given id.
+      Return the neighbors of the word with the given id.
+
+      Return a list of tuples: (id, word).
 
    .. method:: add_word(word, freq)
 
@@ -200,10 +207,12 @@ The analysis module handles the actual spell-checking and correction.
 
       Balance frequencies in the database.
 
+      .. note:: Not yet implemented.
+
 .. class:: Spell(db)
 
    Class that implements the spell-checking and correction
-   functionalities.
+   functionality.
 
    `db` is the database to use for this instance of Spell.
 
@@ -244,27 +253,34 @@ gzserver
 
 gzcli
 
-    A CLI script.  See the file or ``gzserver -h`` for usage instructions.
+   A CLI script.  See the file or ``gzserver -h`` for usage instructions.
 
 gzshell
 
-    A shell interface script.  See the file or ``gzserver -h`` for
-    usage instructions.  Commands are the same as the server API.
+   A shell interface script.  See the file or ``gzserver -h`` for
+   usage instructions.  Commands are the same as the server API.
+
+make_lexicon
+
+   Given a word list and any number of corpora files, generate a
+   lexicon file::
+
+     $ make_lexicon lexicon.dat wordlist corpus1 corpus2 ...
 
 make_graph
 
-    Given a lexicon, generate a graph file.  See the docstrings in the
-    script for data file formats (It's similar to JSON).
+   Given a lexicon, generate a graph file.  See the docstrings in the
+   script for data file formats (It's similar to JSON).
 
-    .. warning::
+   .. warning::
 
-       This will take forever.  O(n^2) edit distance calculations which
-       are O(n^2).  Thus O(n^4).  Luckily, this is a one-time one-time
-       cost to initialize the database.
+      This will take forever.  O(n^2) edit distance calculations which
+      are O(n^2).  Thus O(n^4).  Luckily, this is a one-time one-time
+      cost to initialize the database.
 
-import_database
+import_lexicon
 
-    Load lexicon and graph data files into a MySQL database.
+   Load lexicon and graph data files into a MySQL database.
 
 Unit Tests
 ==========
@@ -280,7 +296,7 @@ The server opens an INET socket locally at a given port (defaults to
 
 Messages sent to and from the server are wrapped as follows:  First byte
 indicates the number of following bytes (NOT characters), up to 255.
-Messages are encoded in UTF-8.  See wrap() in server.py.
+Messages are encoded in UTF-8.  See ``wrap()`` in server.py.
 
 Commands sent to the server have the format: "COMMAND arguments"
 
@@ -309,6 +325,8 @@ BUMP word
 
 UPDATE word
     Add a new word to the dictionary, or bump if it exists.
+
+PROCESS and UPDATE will probably be the easiest to use.
 
 Database Schema
 ===============
