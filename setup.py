@@ -13,5 +13,6 @@ setup(
     scripts=['src/bin/' + x for x in [
         'gzserver', 'gzcli', 'gzshell',
         'make_graph', 'make_lexicon', 'import_lexicon', 'add_corpus',
+        'test_correction',
         ]],
 )
