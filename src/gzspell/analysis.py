@@ -102,7 +102,7 @@ class Database:
         logger.debug('_gen_graph(%r, wordlist)', target)
         threshold = GRAPH_THRESHOLD
         for id, word in wordlist:
-            if editdist(word, target, threshold) < threshold:
+            if editdist(word, target) < threshold:
                 yield id
 
     def add_freq(self, word, freq):
@@ -166,7 +166,7 @@ class Spell:
         # select inital candidate
         id_cand = random.choice(id_init_cands)
         while (editdist(
-                self.db.wordfromid(id_cand), word, self.LOOKUP_THRESHOLD) >
+                self.db.wordfromid(id_cand), word) >
                self.LOOKUP_THRESHOLD):
             id_cand = random.choice(id_init_cands)
             init_tries += 1
@@ -327,15 +327,17 @@ costs.compute()
 
 
 @lru_cache(4096)
-def editdist(a, b, limit=None):
+def editdist(a, b):
     try:
-        return _r_editdist(a, b, limit)
+        x = _r_editdist(a, b)
+        logger.debug('editdist(%r, %r) = %r', a, b, x)
+        return x
     except LimitException:
         return float('+inf')
 
 
 @lru_cache(4096)
-def _r_editdist(a, b, limit):
+def _r_editdist(a, b):
     """
     Parameters
     ----------
@@ -343,12 +345,8 @@ def _r_editdist(a, b, limit):
         Word substring to calculate edit distance for
     b : str
         Word substring to calculate edit distance for
-    limit : Number or None
-        Cost limit before returning
 
     """
-    logger.debug(
-        '_r_editdist(%r, %r, %r)', a, b, limit)
     assert isinstance(a, str)
     assert isinstance(b, str)
     possible = [float('+inf')]
@@ -370,10 +368,4 @@ def _r_editdist(a, b, limit):
     if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
         possible.append(_r_editdist(a[:-2], b[:-2], limit) + 1)
     cost = min(possible)
-    if limit is not None and cost > limit:
-        raise LimitException
     return cost
-
-
-class LimitException(Exception):
-    pass
