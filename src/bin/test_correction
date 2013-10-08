@@ -33,7 +33,7 @@ def main(*args):
     correct = 0
     dont_have = 0
     total = 0
-    start = time.clock()
+    elapsed = 0
     for file in args.files:
         with open(file) as f:
             for line in f:
@@ -43,20 +43,22 @@ def main(*args):
                     print("{} not in lexicon".format(right))
                 while True:
                     try:
+                        start = time.clock()
                         result = spell.correct(wrong)
+                        end = time.clock()
                     except InternalError:  # too many connections
                         time.sleep(1)
                         continue
                     else:
+                        elapsed += end - start
                         break
                 print("{} corrected to {} (should be {})".format(
                     wrong, result, right))
                 if result == right:
                     correct += 1
                 total += 1
-    end = time.clock()
 
-    print("Runtime: {}".format(end - start))
+    print("Runtime: {}".format(elapsed))
     print("Correct: {}".format(correct))
     print("Words not in lexicon: {}".format(dont_have))
     print("Total words: {}".format(total))
