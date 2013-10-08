@@ -49,7 +49,7 @@ class Database:
             cur.execute(' '.join((
                 'SELECT id, word FROM words WHERE length BETWEEN %s AND %s',
                 'AND word LIKE %s')), (a, b, prefix + '%'))
-            return [(x[0], x[1].decode('utf8') for x in cur.fetchall()]
+            return [(x[0], x[1].decode('utf8')) for x in cur.fetchall()]
 
     def neighbors(self, word_id):
         with self._connect() as cur:
@@ -57,7 +57,7 @@ class Database:
                 'SELECT word2, word FROM graph',
                 'LEFT JOIN words ON graph.word2=words.id WHERE word1=%s',
             ), word_id)
-            return [(x[0], x[1].decode('utf8') for x in cur.fetchall()]
+            return [(x[0], x[1].decode('utf8')) for x in cur.fetchall()]
 
     def add_word(self, word, freq):
         logger.debug('add_word(%r, %r)', word, freq)
