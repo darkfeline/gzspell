@@ -37,7 +37,7 @@ def main(*args):
     for file in args.files:
         with open(file) as f:
             for line in f:
-                wrong, right = line.split(',')
+                wrong, right = line.rstrip().split(',')
                 if spell.check(right) != 'OK':
                     dont_have += 1
                     print("{} not in lexicon".format(right))
@@ -45,6 +45,7 @@ def main(*args):
                     try:
                         result = spell.correct(wrong)
                     except InternalError:  # too many connections
+                        time.sleep(1)
                         continue
                     else:
                         break
