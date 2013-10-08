@@ -6,6 +6,7 @@ import argparse
 import cmd
 import cProfile
 import time
+from pymysql.err import InternalError
 
 from gzspell import analysis
 from gzspell import server
@@ -40,7 +41,13 @@ def main(*args):
                 if spell.check(right) != 'OK':
                     dont_have += 1
                     print("{} not in lexicon".format(right))
-                result = spell.correct(wrong)
+                while True:
+                    try:
+                        result = spell.correct(wrong)
+                    except InternalError:  # too many connections
+                        continue
+                    else:
+                        break
                 print("{} corrected to {} (should be {})".format(
                     wrong, result, right))
                 if result == right:
