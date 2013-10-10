@@ -267,10 +267,23 @@ gzcli
 
    A CLI script.  See the file or ``gzserver -h`` for usage instructions.
 
+   Run with ``--profile`` for profiling information.
+
 gzshell
 
    A shell interface script.  See the file or ``gzserver -h`` for
-   usage instructions.  Commands are the same as the server API.
+   usage instructions.  Commands are the same as the server API.  An
+   extra command ``profile`` is provided to turn profiling on or off.
+
+   check <word>
+   correct <word>
+   process <word>
+   add <word>
+   bump <word>
+   update <word>
+   profile <on|off>
+   profile
+   quit
 
 make_lexicon
 
