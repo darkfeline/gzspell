@@ -46,15 +46,27 @@ Example
 
 ::
 
+   # Install gzspell package
    $ python setup.py install
+
+   # Load schema
    $ mysql -u group0 -p < files/lexicon.sql
+
+   # Make lexicon (generate frequencies) from wordlist and corpora
    $ make_lexicon lexicon.dat wordlist corpus1 corpus2
+
+   # Make graph (Warning: will take forever)
    $ make_graph lexicon.dat graph.dat
+
+   # Import lexicon and graph into database
    $ import_lexicon --db-user group0 --db-passwd passwd lexicon.dat graph.dat
+
    # Start server
    $ gzserver --user group0 --passwd passwd
+
    # Start shell interface
    $ gzshell --user group0 --passwd passwd
+
    # Run one command
    $ gzcli --user group0 --passwd passwd process appler
 
