@@ -47,7 +47,8 @@ def main(*args):
     }
 
     if args.profile:
-        cProfile.run('print(cmd_dict[args.command](*args.args))')
+        cProfile.runctx('print(cmd_dict[args.command](*args.args))', None,
+                        locals())
     else:
         print(cmd_dict[args.command](*args.args))
 
