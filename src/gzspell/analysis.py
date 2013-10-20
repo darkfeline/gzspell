@@ -303,12 +303,9 @@ costs.compute()
 
 @lru_cache(4096)
 def editdist(a, b):
-    try:
-        x = _r_editdist(a, b)
-        logger.debug('editdist(%r, %r) = %r', a, b, x)
-        return x
-    except LimitException:
-        return float('+inf')
+    x = _r_editdist(a, b)
+    logger.debug('editdist(%r, %r) = %r', a, b, x)
+    return x
 
 
 @lru_cache(4096)
