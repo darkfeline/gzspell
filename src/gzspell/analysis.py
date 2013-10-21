@@ -2,11 +2,14 @@ import logging
 import abc
 from functools import partial
 import random
+from functools import lru_cache
 from operator import itemgetter
 from collections import defaultdict
 from collections import deque
 from numbers import Number
 from itertools import repeat
+from weakref import WeakKeyDictionary
+from weakref import WeakValueDictionary
 
 import pymysql
 
@@ -302,36 +305,46 @@ costs = Costs()
 costs.compute()
 
 
+class Key:
+
+    __slots__ = ['__weakref__']
+
+
 class Cache:
 
     def __init__(self):
-        self.map = dict()
-        self.max = 8192
-        self.items = deque(maxlen=self.max)
+        self.keymap = WeakValueDictionary()
+        self.costmap = WeakKeyDictionary()
+        self.items = deque(maxlen=2**14)
 
     def set(self, a, b, limit, cost):
-        self.map[(a, b, limit)] = cost
-        if len(self.items) == self.max:
-            x = self.items.pop()
-            del self.map[x]
-        self.items.appendleft((a, b, limit))
+        x = (a, b, limit)
+        try:
+            key = self.keymap[x]
+        except KeyError:
+            key = Key()
+        self.keymap[x] = key
+        self.costmap[key] = cost
+        self.items.appendleft(key)
 
     def get(self, a, b, limit):
         """Return cost or raise KeyError"""
         try:
             return self._get((a, b, limit))
         except KeyError:
-            return self._get((b, a, limit))
+            pass
+        return self._get((b, a, limit))
 
     def _get(self, x):
-        cost = self.map[x]
-        self.items.remove(x)
-        self.items.appendleft(x)
+        key = self.keymap[x]
+        cost = self.costmap[key]
+        self.items.appendleft(key)
         return cost
 
 _ed_cache = Cache()
 
 
+@lru_cache(2**12)
 def editdist(a, b, limit=None):
     x = _r_editdist(a, b, limit, 0)
     logger.debug('editdist(%r, %r, %r) = %r', a, b, limit, x)
@@ -343,30 +356,31 @@ def _r_editdist(a, b, limit, cost):
     try:
         return _ed_cache.get(a, b, limit)
     except KeyError:
-        # early cutoff
-        if limit and cost > limit:
-            logger.debug('Early cutoff on editdist hit')
-            return float('+inf')
-        # base case
-        if not a and not b:
-            logger.debug('editdist base case hit; cost is %r', cost)
-            _ed_cache.set(a, b, limit, 0)
-            return 0
-        possible = [float('+inf')]
-        # insert in a
-        if len(b) >= 1:
-            possible.append(_r_editdist(a, b[:-1], limit, cost+1) + 1)
-        # delete in a
-        if len(a) >= 1:
-            possible.append(_r_editdist(a[:-1], b, limit, cost+1) + 1)
-        # replace or same
-        if len(a) >= 1 and len(b) >= 1:
-            d = costs.repl_cost(a[-1], b[-1])
-            possible.append(_r_editdist(a[:-1], b[:-1], limit, cost+d) + d)
-        # transposition
-        if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
-            possible.append(_r_editdist(a[:-2], b[:-2], limit, cost+1) + 1)
-        return_cost = min(possible)
-        logger.debug('editdist cost at this level %r', return_cost)
-        _ed_cache.set(a, b, limit, return_cost)
-        return return_cost
+        pass
+    # early cutoff
+    if limit and cost > limit:
+        logger.debug('Early cutoff on editdist hit')
+        return float('+inf')
+    # base case
+    if not a and not b:
+        logger.debug('editdist base case hit; cost is %r', cost)
+        _ed_cache.set(a, b, limit, 0)
+        return 0
+    possible = [float('+inf')]
+    # insert in a
+    if len(b) >= 1:
+        possible.append(_r_editdist(a, b[:-1], limit, cost+1) + 1)
+    # delete in a
+    if len(a) >= 1:
+        possible.append(_r_editdist(a[:-1], b, limit, cost+1) + 1)
+    # replace or same
+    if len(a) >= 1 and len(b) >= 1:
+        d = costs.repl_cost(a[-1], b[-1])
+        possible.append(_r_editdist(a[:-1], b[:-1], limit, cost+d) + d)
+    # transposition
+    if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
+        possible.append(_r_editdist(a[:-2], b[:-2], limit, cost+1) + 1)
+    return_cost = min(possible)
+    logger.debug('editdist cost at this level %r', return_cost)
+    _ed_cache.set(a, b, limit, return_cost)
+    return return_cost
