@@ -1,10 +1,10 @@
-from functools import lru_cache
 import logging
 import abc
 from functools import partial
 import random
 from operator import itemgetter
 from collections import defaultdict
+from collections import deque
 from numbers import Number
 from itertools import repeat
 
@@ -146,13 +146,15 @@ class Spell:
         init_tries = 0
         # select inital candidate
         id_cand, word_cand = random.choice(init_cands)
-        while editdist(word_cand, word) > self.LOOKUP_THRESHOLD:
+        x = editdist(word_cand, word, self.LOOKUP_THRESHOLD)
+        while x > self.LOOKUP_THRESHOLD:
             id_cand, word_cand = random.choice(init_cands)
             init_tries += 1
             if init_tries > self.INIT_LIMIT:
                 logger.debug('Candidate search limit hit')
                 return
-        cands.append((id_cand, word_cand, editdist(word_cand, word)))
+            x = editdist(word_cand, word, self.LOOKUP_THRESHOLD)
+        cands.append((id_cand, word_cand, x))
         seen.add(id_cand)
 
         # traverse graph
@@ -172,7 +174,7 @@ class Spell:
             if id_neighbor not in seen:
                 logger.debug("Visiting %r", id_neighbor)
                 seen.add(id_neighbor)
-                dist = editdist(word, word_neighbor)
+                dist = editdist(word, word_neighbor, self.LOOKUP_THRESHOLD)
                 if dist <= self.LOOKUP_THRESHOLD:
                     cands.append((id_neighbor, word_neighbor, dist))
                     id_new.add(id_neighbor)
@@ -287,7 +289,6 @@ class Costs:
                 for j, y in enumerate(self.keys)))
 
     def repl_cost(self, a, b):
-        logger.debug('repl_cost(%r, %r)', a, b)
         assert isinstance(a, str) and len(a) == 1
         assert isinstance(b, str) and len(b) == 1
         try:
@@ -301,43 +302,71 @@ costs = Costs()
 costs.compute()
 
 
-@lru_cache(4096)
-def editdist(a, b):
-    x = _r_editdist(a, b)
-    logger.debug('editdist(%r, %r) = %r', a, b, x)
+class Cache:
+
+    def __init__(self):
+        self.map = dict()
+        self.max = 8192
+        self.items = deque(maxlen=self.max)
+
+    def set(self, a, b, limit, cost):
+        self.map[(a, b, limit)] = cost
+        if len(self.items) == self.max:
+            x = self.items.pop()
+            del self.map[x]
+        self.items.appendleft((a, b, limit))
+
+    def get(self, a, b, limit):
+        """Return cost or raise KeyError"""
+        try:
+            return self._get((a, b, limit))
+        except KeyError:
+            return self._get((b, a, limit))
+
+    def _get(self, x):
+        cost = self.map[x]
+        self.items.remove(x)
+        self.items.appendleft(x)
+        return cost
+
+_ed_cache = Cache()
+
+
+def editdist(a, b, limit=None):
+    x = _r_editdist(a, b, limit, 0)
+    logger.debug('editdist(%r, %r, %r) = %r', a, b, limit, x)
     return x
 
-
-@lru_cache(4096)
-def _r_editdist(a, b):
-    """
-    Parameters
-    ----------
-    a : str
-        Word substring to calculate edit distance for
-    b : str
-        Word substring to calculate edit distance for
-
-    """
+def _r_editdist(a, b, limit, cost):
     assert isinstance(a, str)
     assert isinstance(b, str)
-    # base case
-    if not a and not b:
-        return 0
-    possible = [float('+inf')]
-    # insert in a
-    if len(b) >= 1:
-        possible.append(_r_editdist(a, b[:-1]) + 1)
-    # delete in a
-    if len(a) >= 1:
-        possible.append(_r_editdist(a[:-1], b) + 1)
-    # replace or same
-    if len(a) >= 1 and len(b) >= 1:
-        possible.append(
-            _r_editdist(a[:-1], b[:-1]) +
-            costs.repl_cost(a[-1], b[-1]))
-    # transposition
-    if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
-        possible.append(_r_editdist(a[:-2], b[:-2]) + 1)
-    cost = min(possible)
-    return cost
+    try:
+        return _ed_cache.get(a, b, limit)
+    except KeyError:
+        # early cutoff
+        if limit and cost > limit:
+            logger.debug('Early cutoff on editdist hit')
+            return float('+inf')
+        # base case
+        if not a and not b:
+            logger.debug('editdist base case hit; cost is %r', cost)
+            _ed_cache.set(a, b, limit, 0)
+            return 0
+        possible = [float('+inf')]
+        # insert in a
+        if len(b) >= 1:
+            possible.append(_r_editdist(a, b[:-1], limit, cost+1) + 1)
+        # delete in a
+        if len(a) >= 1:
+            possible.append(_r_editdist(a[:-1], b, limit, cost+1) + 1)
+        # replace or same
+        if len(a) >= 1 and len(b) >= 1:
+            d = costs.repl_cost(a[-1], b[-1])
+            possible.append(_r_editdist(a[:-1], b[:-1], limit, cost+d) + d)
+        # transposition
+        if len(a) >= 2 and len(b) >= 2 and a[-1] == b[-2] and a[-2] == b[-1]:
+            possible.append(_r_editdist(a[:-2], b[:-2], limit, cost+1) + 1)
+        return_cost = min(possible)
+        logger.debug('editdist cost at this level %r', return_cost)
+        _ed_cache.set(a, b, limit, return_cost)
+        return return_cost
